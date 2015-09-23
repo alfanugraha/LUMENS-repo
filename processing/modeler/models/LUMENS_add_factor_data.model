@@ -1,0 +1,11 @@
+NAME:LUMENS add factor data
+GROUP:[LUMENS]
+PARAMETER:ParameterFile|FILE_FACTORFILERASTER|Factor file (raster)|False|True
+120.0,60.0
+PARAMETER:ParameterString|STRING_FACTORDESCRIPTION|Factor description|Description of factor information
+340.0,60.0
+ALGORITHM:r:lumensaddfactordata
+120.0,160.0
+None
+-1|FILE_FACTORFILERASTER
+-1|STRING_FACTORDESCRIPTION

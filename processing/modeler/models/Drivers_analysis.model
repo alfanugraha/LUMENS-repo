@@ -1,0 +1,11 @@
+NAME:Drivers analysis
+GROUP:[LUMENS]
+PARAMETER:ParameterFile|FILE_DRIVERSOFLANDUSECOVERCHANGE|Drivers of land use/cover change (.txt)|False|True
+120.0,60.0
+PARAMETER:ParameterString|STRING_LANDUSECOVERCHANGETYPE|Land use/cover change type|Perubahan penggunaan lahan
+340.0,60.0
+ALGORITHM:r:driversanalysis
+120.0,160.0
+None
+-1|FILE_DRIVERSOFLANDUSECOVERCHANGE
+-1|STRING_LANDUSECOVERCHANGETYPE

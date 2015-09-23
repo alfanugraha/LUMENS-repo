@@ -1,0 +1,17 @@
+NAME:Calculate projection historical baseline
+GROUP:[SCIENDO]
+PARAMETER:ParameterFile|FILE_WORKINGDIRECTORY|Working Directory|True|True
+120.0,60.0
+PARAMETER:ParameterFile|FILE_ABACUSPROJECTFILE|Abacus Project File|False|True
+340.0,60.0
+PARAMETER:ParameterNumber|NUMBER_PERIODE1|Periode 1|None|None|2005.0
+560.0,60.0
+PARAMETER:ParameterNumber|NUMBER_PERIODE2|Periode 2|None|None|2010.0
+780.0,60.0
+ALGORITHM:r:calculatehistorical
+120.0,160.0
+None
+-1|FILE_WORKINGDIRECTORY
+-1|FILE_ABACUSPROJECTFILE
+-1|NUMBER_PERIODE1
+-1|NUMBER_PERIODE2

@@ -1,0 +1,475 @@
+# -*- coding: utf-8 -*-
+
+import sys
+from PyQt4.QtCore import * 
+from PyQt4.QtGui import * 
+
+from OknoGlowne import Ui_OknoGlowne
+
+
+class OknoGlowne(QMainWindow):
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent)
+        self.ui = Ui_OknoGlowne()
+        self.ui.setupUi(self)
+        
+        self.ui.listaPol.setAcceptDrops(True)
+        self.ui.listaPol.setModelColumn(2)
+        
+        self.ui.wiersze.setAcceptDrops(True)
+        
+        self.ui.kolumny.setAcceptDrops(True)
+        
+        self.ui.wartosci.setAcceptDrops(True)
+        
+        QObject.connect(self.ui.oblicz,SIGNAL("clicked()"), self.pokazWynik)
+        
+        
+        slownikPol =  {'atrybutyTxt':[('Rejon',1), ('Posterunek',2)],
+                    'atrybutyLicz':[('Moc stacji', 3)],
+                    'geometria':[('Dlugosc', 1), ('Powierzchnia', 2)],
+                    'obliczenia':[('Liczebnosc', 1), ('Suma', 2), ('Srednia', 3), ('Odchylenie statystyczne', 4)]}
+        
+        self.tm1 = ModelListaPol(slownikPol)
+        self.ui.listaPol.setModel(self.tm1)
+
+        self.tm2 = ModelWiK()
+        #tm2.ustawInneModele(tm1)
+        self.ui.wiersze.setModel(self.tm2)
+        
+        self.tm3 = ModelWiK()
+        #tm3.ustawInneModele(tm1)
+        self.ui.kolumny.setModel(self.tm3)
+        
+        self.tm4 = ModelWartosci()
+        self.ui.wartosci.setModel(self.tm4)
+        
+        self.tm2.ustawInneModele(self.tm3, self.tm4)
+        self.tm3.ustawInneModele(self.tm2, self.tm4)
+        self.tm4.ustawInneModele(self.tm2, self.tm3)
+        
+        self.tm5 = ModelWyniki([[1,2,3],[4,5,6],[7,8,9],[1,2,3],[4,5,6],[7,8,9]])
+        self.ui.wyniki.setModel(self.tm5)
+        
+    def pokazWynik(self):
+        dane = []
+        kolumny = ['']
+        for k in self.tm3.dane:
+            kolumny.append(k[1])
+        dane.append(kolumny)
+        for w in self.tm2.dane:
+            wiersz = []
+            wiersz.append(w[1])
+            wiersz.extend(len(kolumny)*'')
+            dane.append(wiersz)
+        
+        print dane
+        self.tm5.dane = dane
+
+
+class ModelWiK(QAbstractListModel):
+    u"""
+    Model dla okien z listami pól dla wierszy i kolumn
+    """
+        
+    def __init__(self, parent=None):
+        
+        super(ModelWiK, self).__init__(parent)
+        self.dane = []
+        
+        
+    def rowCount(self, parent=QModelIndex): 
+        return len(self.dane) 
+ 
+ 
+    def data(self, indeks, rola=Qt.DisplayRole):
+        
+        if not indeks.isValid() or not 0 <= indeks.row() < self.rowCount():
+            return QVariant()
+            
+        wiersz = indeks.row()
+            
+        if rola == Qt.DisplayRole:
+            return str( self.dane[wiersz][1] )
+            
+        elif rola == Qt.ForegroundRole:
+            if self.dane[wiersz][0] == 'geometria':
+                kolor = QColor(0,255,0)
+            elif self.dane[wiersz][0] == 'obliczenia':
+                kolor = QColor(255,0,0)
+            elif self.dane[wiersz][0] == 'atrybutyTxt':
+                kolor = QColor(150,150,150)
+            else:
+                kolor = QColor(0,0,0)   # 'atrybutyLicz'
+                
+            pedzel = QBrush(kolor)
+            return pedzel
+            
+        return QVariant()
+        
+        
+    def flags(self, indeks):
+        
+        flagi = super(ModelWiK, self).flags(indeks)
+            
+        if indeks.isValid():
+            return flagi | Qt.ItemIsDragEnabled | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        else:
+            return Qt.ItemIsDropEnabled
+        
+        
+    def supportedDragActions(self):
+        return Qt.MoveAction
+        
+        
+    def supportedDropActions(self):
+        return Qt.MoveAction
+        
+        
+    #def setData(self, indeks, wartosc, rola):
+    #    print 'set data'
+    #    if indeks.isValid():
+    #        self.dane[indeks.row()] = wartosc
+    #        
+    #        return True
+    #    else:
+    #        return False
+    
+
+    
+    def mimeTypes(self):
+        return ['application/x-groupstats-pola']
+    
+    def ustawInneModele(self, modelWiK, modelWartosci):
+        self.modelWiK = modelWiK.dane
+        self.modelWartosci = modelWartosci.dane
+    
+    def dropMimeData(self, daneMime, akcja, wiersz, kolumna, indeks):
+        
+        dane = daneMime.data('application/x-groupstats-pola')
+        strumien = QDataStream(dane, QIODevice.ReadOnly)
+        while not strumien.atEnd():
+            daneWy = []
+            typ = QString()
+            nazwa = QString()
+            strumien >> typ >> nazwa
+            id = strumien.readInt16()     
+            pole = (typ, nazwa, id)
+            daneWKiW = self.modelWiK+self.modelWartosci
+            if not (typ=='obliczenia' and typ in [x[0] for x in daneWKiW]) and\
+               (typ<>'obliczenia' or len(self.modelWartosci)==0 or (nazwa=='Liczebnosc' and 'atrybutyTxt' in [x[0] for x in self.modelWartosci]) or 'atrybutyTxt' not in [x[0] for x in self.modelWartosci]) and\
+               not (pole in self.modelWiK or pole in self.dane) and\
+               not ((typ<>'obliczenia' and 'obliczenia' in [x[0] for x in self.dane]) or (typ=='obliczenia' and len([x for x in self.dane if (x[0]<>'obliczenia')])>0)):
+                daneWy.append(pole)
+                self.insertRows(wiersz, 1, indeks, daneWy)
+                
+        # Warunki:
+        # 
+        # pole obliczeniowe może być tylko w jednym oknie (wiersze/kolumny/wartosci)
+        # 
+        # jesli pole wartosci jest atrybutemTxt to obliczenie moze byc tylko licznikiem
+        # pole nie moze sie powtorzyc w wierszu i kolumnie
+        # pola obliczeniowe nie moga byc razem z innymi polami
+        
+        
+        return True
+    
+    
+    def mimeData(self, indeksy):
+        
+        daneMime = QMimeData()
+        dane = QByteArray()
+        strumien = QDataStream(dane, QIODevice.WriteOnly)    
+            
+        for indeks in indeksy:
+            wiersz = indeks.row()
+            strumien << QString(self.dane[wiersz][0]) << QString(self.dane[wiersz][1])
+            strumien.writeInt16(self.dane[wiersz][2])
+            
+        daneMime.setData('application/x-groupstats-pola', dane)
+        
+        return daneMime
+    
+    def insertRows(self, wiersz, liczba, indeks, dane):
+        
+        self.beginInsertRows(indeks, wiersz, wiersz+liczba-1)
+        for n in range(liczba): self.dane.insert(wiersz, dane[n])
+        self.endInsertRows()
+        
+        return True
+
+    def removeRows(self, wiersz, liczba, indeks):
+        self.beginRemoveRows(indeks, wiersz, wiersz+liczba-1)
+        del self.dane[wiersz:wiersz+liczba]
+        self.endRemoveRows()
+        return True
+
+
+class ModelWartosci(QAbstractListModel):
+    u"""
+    Model dla okna z wartosciami do obliczenia
+    """
+        
+    def __init__(self, parent=None):
+        
+        super(ModelWartosci, self).__init__(parent)
+        self.dane = []
+        
+        
+    def rowCount(self, parent=QModelIndex): 
+        return len(self.dane) 
+ 
+ 
+    def data(self, indeks, rola=Qt.DisplayRole):
+        
+        if not indeks.isValid() or not 0 <= indeks.row() < self.rowCount():
+            return QVariant()
+            
+        wiersz = indeks.row()
+            
+        if rola == Qt.DisplayRole:
+            return str( self.dane[wiersz][1] )
+            
+        elif rola == Qt.ForegroundRole:
+            if self.dane[wiersz][0] == 'geometria':
+                kolor = QColor(0,255,0)
+            elif self.dane[wiersz][0] == 'obliczenia':
+                kolor = QColor(255,0,0)
+            elif self.dane[wiersz][0] == 'atrybutyTxt':
+                kolor = QColor(150,150,150)
+            else:
+                kolor = QColor(0,0,0)   # 'atrybutyLicz'
+                
+            pedzel = QBrush(kolor)
+            return pedzel
+            
+        return QVariant()
+        
+        
+    def flags(self, indeks):
+        
+        flagi = super(ModelWartosci, self).flags(indeks)
+            
+        if indeks.isValid():
+            return flagi | Qt.ItemIsDragEnabled | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        else:
+            return Qt.ItemIsDropEnabled
+        
+        
+    def supportedDragActions(self):
+        return Qt.MoveAction
+        
+        
+    def supportedDropActions(self):
+        return Qt.MoveAction
+        
+        
+    def mimeTypes(self):
+        return ['application/x-groupstats-pola']
+    
+
+    
+    def dropMimeData(self, daneMime, akcja, wiersz, kolumna, indeks):
+        
+        dane = daneMime.data('application/x-groupstats-pola')
+        strumien = QDataStream(dane, QIODevice.ReadOnly)
+
+        while not strumien.atEnd():
+            daneWy = []
+            typ = QString()
+            nazwa = QString()
+            strumien >> typ >> nazwa
+            id = strumien.readInt16()
+            pole = (typ, nazwa, id)
+            daneWszystkie = self.modelWiersze+self.modelKolumny+self.dane
+            daneWiK = self.modelWiersze+self.modelKolumny
+            if not len(self.dane)>=2 and \
+               not (typ=='obliczenia' and typ in [x[0] for x in daneWszystkie]) and\
+               not (len(self.dane)==1 and typ<>'obliczenia' and self.dane[0][0]<>'obliczenia') and\
+               not (len(self.dane)==1 and ((typ=='atrybutyTxt' and self.dane[0][1]<>'Liczebnosc') or (nazwa<>'Liczebnosc' and self.dane[0][0]=='atrybutyTxt'))) and\
+               not (typ=='atrybutyTxt' and len([x for x in daneWiK if (x[0]=='obliczenia' and x[1]<>'Liczebnosc')])>0):
+                daneWy.append(pole)
+                self.insertRows(wiersz, 1, indeks, daneWy)
+                
+        # Warunki:
+        # nie może być więcej niż dwa pola
+        # pole obliczeniowe może być tylko w jednym oknie (wiersze/kolumny/wartosci)
+        # jedno z pół musi być obliczeniem
+        # jesli jedno pole jest atrybutemTxt to drugie musi byc licznikiem
+        # jesli w kolumnach/wierszach sa obliczenie inne niz Licznik to nie mozna wprowadzic atrybutyTxt
+        # sprawdzic: co jeśli przy usuwaniu zostanie tylko pole obliczeniowe albo pole wartosci
+        
+        
+        
+        return True
+
+    def ustawInneModele(self, modelWiersze, modelKolumny):
+        self.modelWiersze = modelWiersze.dane
+        self.modelKolumny = modelKolumny.dane
+    
+    def mimeData(self, indeksy):
+        
+        daneMime = QMimeData()
+        dane = QByteArray()
+        strumien = QDataStream(dane, QIODevice.WriteOnly)    
+            
+        for indeks in indeksy:
+            wiersz = indeks.row()
+            strumien << QString(self.dane[wiersz][0]) << QString(self.dane[wiersz][1])
+            strumien.writeInt16(self.dane[wiersz][2])
+            
+        daneMime.setData('application/x-groupstats-pola', dane)
+        
+        return daneMime
+    
+
+    
+    
+    def insertRows(self, wiersz, liczba, indeks, dane):
+        
+        self.beginInsertRows(indeks, wiersz, wiersz+liczba-1)
+        for n in range(liczba): self.dane.insert(wiersz, dane[n])
+        self.endInsertRows()
+        
+        return True
+
+    def removeRows(self, wiersz, liczba, indeks):
+        self.beginRemoveRows(indeks, wiersz, wiersz+liczba-1)
+        del self.dane[wiersz:wiersz+liczba]
+        self.endRemoveRows()
+        return True
+
+
+class ModelListaPol(QAbstractListModel):
+    u"""
+    Model dla okna z listą dostępnych pól
+    """
+        
+    def __init__(self, slownikPol, parent=None):
+        
+        super(ModelListaPol, self).__init__(parent)
+        self.ustawDane(slownikPol)
+        
+        
+    def ustawDane(self, slownikPol):
+        
+        self.dane = ()
+        self.daneTemp = []
+            
+        for i, j in slownikPol.iteritems():
+            for k, l in j:
+                self.daneTemp.append((i, k, l))
+            
+        self.dane = tuple(self.daneTemp)
+        
+     
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.dane)   
+        
+        
+    def data(self, indeks, rola=Qt.DisplayRole):
+        
+        if not indeks.isValid() or not 0 <= indeks.row() < self.rowCount():
+            return QVariant()
+            
+        wiersz = indeks.row()
+            
+        if rola == Qt.DisplayRole:
+            return str( self.dane[wiersz][1] )
+            
+        elif rola == Qt.ForegroundRole:
+            if self.dane[wiersz][0] == 'geometria':
+                kolor = QColor(0,255,0)
+            elif self.dane[wiersz][0] == 'obliczenia':
+                kolor = QColor(255,0,0)
+            elif self.dane[wiersz][0] == 'atrybutyTxt':
+                kolor = QColor(150,150,150)
+            else:
+                kolor = QColor(0,0,0)   # 'atrybutyLicz'
+                
+            pedzel = QBrush(kolor)
+            return pedzel
+            
+        return QVariant()
+        
+        
+    def flags(self, indeks):
+        
+        flagi = super(ModelListaPol, self).flags(indeks)
+            
+        if indeks.isValid():
+            return flagi | Qt.ItemIsDragEnabled | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        else:
+            return Qt.ItemIsDropEnabled
+        
+        
+    def mimeData(self, indeksy):
+        
+        daneMime = QMimeData()
+        dane = QByteArray()
+        strumien = QDataStream(dane, QIODevice.WriteOnly)    
+            
+        for indeks in indeksy:
+            wiersz = indeks.row()
+            strumien << QString(self.dane[wiersz][0]) << QString(self.dane[wiersz][1])
+            strumien.writeInt16(self.dane[wiersz][2])
+            
+        daneMime.setData('application/x-groupstats-pola', dane)
+        
+        return daneMime
+        
+        
+    def mimeTypes(self):
+        return ['application/x-groupstats-pola']
+        
+        
+    def supportedDragActions(self):
+        return Qt.MoveAction
+        
+        
+    def supportedDropActions(self):
+        return Qt.MoveAction
+
+
+class ModelWyniki(QAbstractTableModel):
+    u"""
+    Model dla okna z wynikami obliczen
+    """
+        
+    def __init__(self, dane, parent=None):
+        
+        super(ModelWyniki, self).__init__(parent)
+        self.dane = dane
+        
+        
+    def columnCount(self,parent=QModelIndex()):
+        return len(self.dane[0])
+     
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.dane)   
+        
+        
+    def data(self, indeks, rola=Qt.DisplayRole):
+        
+        if not indeks.isValid() or not 0 <= indeks.row() < self.rowCount():
+            return QVariant()
+            
+        wiersz = indeks.row()
+        kolumna = indeks.column()
+            
+        if rola == Qt.DisplayRole:
+            return str( self.dane[wiersz][kolumna] )
+            
+
+            
+        return QVariant()
+        
+        
+
+
+if __name__ == "__main__":    
+        
+    app = QApplication(sys.argv)
+    myapp = OknoGlowne()
+    myapp.show()
+    sys.exit(app.exec_())

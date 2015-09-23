@@ -1,0 +1,9 @@
+NAME:LUMENS open database
+GROUP:[LUMENS]
+PARAMETER:ParameterFile|FILE_OPENPROJECTFILELPJ|Open project file (.lpj)|False|True
+120.0,60.0
+ALGORITHM:r:lumensopendatabase
+120.0,160.0
+None
+-1|FILE_OPENPROJECTFILELPJ
+Overview of study area|320.0,160.0

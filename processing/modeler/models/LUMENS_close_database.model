@@ -1,0 +1,5 @@
+NAME:LUMENS close database
+GROUP:[LUMENS]
+ALGORITHM:r:lumensclosedatabase
+120.0,160.0
+None
