@@ -17,21 +17,28 @@ library(foreign)
 library(dplyr)
 library(tcltk)
 
+#INPUTS
+#data - contains landcover 1 and 2
+#pu - contains planning unit data
+#T1
+#T2
+#command1
+
 Look_up_table<-Land_cover_lookup_table
 analysis.option<-Analysis_option
 raster.nodata<-Land_cover_no_data_value
 
 time_start<-paste(eval(parse(text=(paste("Sys.time ()")))), sep="")
-lut.lc<-read.table(Look_up_table, header=TRUE, sep=",",)
+lut.lc<-read.table(Look_up_table, header=TRUE, sep=",")
 
-#READ LUMENS LOG FILE
+#====READ LUMENS LOG FILE====
 LUMENS_log <- as.data.frame(Sys.info())
 OS <- substr(as.character(LUMENS_log[2,1]), 1, 2)
 username <- as.character(LUMENS_log[6,1])
 if(OS == "XP") {
-  user_path<-paste("C:/Documents and Settings/", username, sep="")
+  user_path<-paste("C:/Documents and Settings/All Users", sep="")
 } else {
-  user_path<-paste("C:/Users/", username, sep="")
+  user_path<-paste("C:/Users/Public", sep="")
 }
 LUMENS_path_user <- paste(user_path,"/LUMENS/LUMENS.log", sep="")
 log.file<-read.table(LUMENS_path_user, header=FALSE, sep=",")
@@ -61,6 +68,28 @@ for(i in 1:n) {
     command1<-paste(command1,"period", i, sep="")
     command2<-paste(command2,"landuse_t", i, sep="")
   }
+}
+
+#===Check LUMENS Pre-QUES log file====
+if (file.exists(paste(user_path,"/LUMENS/LUMENS_pre_ques.log", sep=""))) {
+  log.preques<-read.table(paste(user_path,"/LUMENS/LUMENS_pre_ques.log", sep=""), sep=",", header=T, row.names=1)
+    print("LUMENS Pre-QuES log file is available")
+} else
+{
+  log.preques<-data.frame(IDX=NA, 
+                          MODULE=NA, 
+                          DATE=NA,
+                          TIME=NA,
+                          LU1=NA,
+                          LU2=NA,
+                          PU=NA,
+                          T1=NA,
+                          T2=NA,
+                          LOOKUP_LC=NA,
+                          LOOKUP_ZONE=NA,
+                          NODATA=NA,
+                          ANALYSIS_OPTION=NA,
+                          OUTPUT_FOLDER=NA, row.names=NULL)
 }
 
 #if pu is not exist, use p.admin.df as planning unit reference
@@ -170,18 +199,19 @@ if (grepl("+units=m", as.character(ref@crs))){
 #===CHECK EXISTING RASTER BRICK OR CROSSTAB====
 setwd(paste(dirname(proj.file),"/QUES/", sep=""))
 command1<-paste(command1,pu, sep="")
+eval(parse(text=(paste("pu_name<-names(",pu[1],")", sep='')))) ; #selected planning unit given name
 check_lucdb<-FALSE
-eval(parse(text=(paste("check_crosstab<-file.exists('lu.db_", T1, "_", T2, ".dbf')", sep="")))) 
-eval(parse(text=(paste("check_rbrick<-file.exists('r.brick_", T1, "_", T2, ".grd')", sep="")))) 
+eval(parse(text=(paste("check_crosstab<-file.exists('lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep="")))) 
+eval(parse(text=(paste("check_rbrick<-file.exists('r.brick_", pu_name ,"_", T1, "_", T2, ".grd')", sep="")))) 
 if(check_crosstab){
-  eval(parse(text=(paste("data_merge<-read.dbf('lu.db_", T1, "_", T2, ".dbf')", sep="")))) 
-  eval(parse(text=(paste("lu.db<-read.dbf('lu.db_", T1, "_", T2, ".dbf')", sep=""))))
+  eval(parse(text=(paste("data_merge<-read.dbf('lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep="")))) 
+  eval(parse(text=(paste("lu.db<-read.dbf('lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep=""))))
 } else if(check_rbrick){
-  eval(parse(text=(paste("r.brick<-brick('r.brick_", T1, "_", T2 , ".grd')", sep=""))))
+  eval(parse(text=(paste("r.brick<-brick('r.brick_", pu_name ,"_", T1, "_", T2, ".grd')", sep=""))))
   lu.db<-crosstab(r.brick,long=TRUE,useNA=FALSE,progress='-')
   check_lucdb<-TRUE
 } else {
-  eval(parse(text=(paste("r.brick<-brick(stack(", command1, "), filename='r.brick_", T1, "_", T2, "')", sep=""))))
+  eval(parse(text=(paste("r.brick<-brick(stack(", command1, "), filename='r.brick_",pu_name,"_",T1, "_", T2, "')", sep=""))))
   lu.db<-crosstab(r.brick,long=TRUE,useNA=FALSE,progress='-')
   check_lucdb<-TRUE
 }
@@ -220,10 +250,10 @@ if(check_lucdb){
   colnames(area_lc1)[3] = "CLASS_LC1"
   colnames(area_lc2)[3] = "CLASS_LC2"
   
-  eval(parse(text=(paste("area_zone<-as.data.frame(freq(", pu,"))", sep=""))))
-  colnames(area_zone)[1] = "ID"
-  colnames(area_zone)[2] = "COUNT_ZONE"
-  area_zone<-merge(area_zone,lookup_z,by="ID")
+  #eval(parse(text=(paste("area_zone<-as.data.frame(freq(", pu,"))", sep=""))))
+  #colnames(area_zone)[1] = "ID"
+  #colnames(area_zone)[2] = "COUNT_ZONE"
+  #area_zone<-merge(area_zone,lookup_z,by="ID")
   
   #area<-min(sum(area_zone[,2]), sum(area_lc1[,2]), sum(area_lc2[,2]))
   
@@ -248,9 +278,14 @@ if(check_lucdb){
   colnames(lookup_z)[1]="ZONE"
   colnames(lookup_z)[2]="Z_NAME"
   data_merge <- as.data.frame(merge(data_merge,lookup_z,by="ZONE"))
-
-  eval(parse(text=(paste("write.dbf(data_merge, 'lu.db_", T1, "_", T2 , ".dbf')", sep=""))))
+  
+  eval(parse(text=(paste("write.dbf(data_merge,'lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep=""))))
 }
+
+eval(parse(text=(paste("area_zone<-as.data.frame(freq(", pu,"))", sep=""))))
+colnames(area_zone)[1] = "ID"
+colnames(area_zone)[2] = "COUNT_ZONE"
+area_zone<-merge(area_zone,lookup_z,by="ID")
 
 data_merge_sel <- data_merge[ which(data_merge$COUNT > 0),]
 data_merge_sel$LU_CHG <- do.call(paste, c(data_merge_sel[c("LC_t1", "LC_t2")], sep = " to "))
@@ -359,7 +394,7 @@ ov.change.plot.4<-ggplot(Ov_chg.melt3,aes(x=reorder(LU_CODE, -Area),y=Area,fill=
          axis.title.x=element_blank())+coord_flip()+ylim (c(-100, 100))
 
 #Create Database
-preques_folder<-paste("PreQUES_analysis_", T1,"_",T2,"_",PreQUES.index,sep="")
+preques_folder<-paste("PreQUES_analysis_",pu_name,"_" ,T1,"_",T2,"_",PreQUES.index,sep="")
 result_dir<-paste(dirname(proj.file),"/QUES/PreQUES/", sep="")
 setwd(result_dir)
 dir.create(preques_folder)
@@ -490,13 +525,13 @@ alphabeta.plot<-function(alphabeta_table, t1, t2, area.analysis){
       geom_text(size=3, aes(label=lc_abr),hjust=0.5,vjust=-1, angle =0)+
       scale_size(range = c(1,50)) + labs(x = paste("Alpha", t1), y= paste("Beta", t2))+ ggtitle(paste(area.analysis, t1, '-', t2))
     return(ab.plot)
-  #+theme_bw()
+    #+theme_bw()
   }
   
 }
 
 #ALPHA BETA AT LANDSCAPE LEVEL
-landscape.alphabeta<-alphabeta(cross, lookup_lc, T1, T2, paste("Keseluruhan", location))
+landscape.alphabeta<-alphabeta(data_merge, lookup_lc, T1, T2, paste("Keseluruhan", location))
 landscape.alphabeta.plot<-alphabeta.plot(landscape.alphabeta, T1, T2,paste("Keseluruhan", location))
 
 if(analysis.option==2 | analysis.option==0){
@@ -504,10 +539,10 @@ if(analysis.option==2 | analysis.option==0){
   for(i in 1:nrow(lookup_z)){
     if (i==1){
       tryCatch({
-        zone_id<-lookup_z$ZONE[i]
+        zone_id<-lookup_z$ID[i]
         #print(zone_id)
-        eval(parse(text=( paste("cross_temp_zone<-na.omit(cross[ which(cross$ZONE==",zone_id,"),])", sep=''))))
-        zona<-paste(lookup_z$Z_NAME[i])
+        eval(parse(text=( paste("cross_temp_zone<-na.omit(data_merge[ which(data_merge$ZONE==",zone_id,"),])", sep=''))))
+        zona<-paste(lookup_z$ZONE[i])
         eval(parse(text=( paste('alphabeta_zone_', zone_id,"<-alphabeta(cross_temp_zone, lookup_l, T1,T2, zona)", sep=''))))
         eval(parse(text=( paste('alphabeta_plot_zone_', zone_id,"<-alphabeta.plot(alphabeta_zone_", zone_id,", T1, T2, zona)", sep=''))))
         #plot.name<-paste("alpha_beta_",location,"_",T1,"_",T2,"_zona_", zona,".png", sep='')
@@ -516,10 +551,10 @@ if(analysis.option==2 | analysis.option==0){
       }, error=function(e){cat("No Alpha-beta analysis", "\n")})
     } else {
       tryCatch({
-        zone_id<-lookup_z$ZONE[i]
+        zone_id<-lookup_z$ID[i]
         #print(zone_id)
-        eval(parse(text=( paste("cross_temp_zone<-na.omit(cross[ which(cross$ZONE==",zone_id,"),])", sep=''))))
-        zona<-paste(lookup_z$Z_NAME[i])
+        eval(parse(text=( paste("cross_temp_zone<-na.omit(data_merge[ which(data_merge$ZONE==",zone_id,"),])", sep=''))))
+        zona<-paste(lookup_z$ZONE[i])
         eval(parse(text=( paste('alphabeta_zone_', zone_id,"<-alphabeta(cross_temp_zone, lookup_l, T1,T2, zona)", sep=''))))
         eval(parse(text=( paste('alphabeta_plot_zone_', zone_id,"<-alphabeta.plot(alphabeta_zone_", zone_id,", T1, T2, zona)", sep=''))))
         eval(parse(text=( paste("alpha_beta_database<-rbind(alpha_beta_database, alphabeta_zone_", zone_id,")", sep=''))))
@@ -780,7 +815,7 @@ addNewLine(rtffile)
 done(rtffile)
 setwd(dirname(proj.file))
 
-#====database export====
+#====Land use change database export====
 PreQUES.index=PreQUES.index+1
 eval(parse(text=(paste("PreQUES_data_", data[1,2], "_", data[2,2], "<-data", sep=""   ))))
 newPre<-paste("PreQUES_data_", data[1,2], "_", data[2,2], sep="")
@@ -795,7 +830,7 @@ command<-paste("resave(PreQUES.index,Ov_chg,Ov_chg.ha,lut.lc,Ov_chg.rate,", newP
 command<-paste(command,"file='",basename(proj.file),"')", sep="")
 eval(parse(text=(command)))
 
-#trajectories
+#==== Pre-QuES Land Use Change Trajectories====
 if(analysis.option==3 | analysis.option==0){
   #PREQUES
   #substitute lookup table internal
@@ -988,7 +1023,7 @@ if(analysis.option==3 | analysis.option==0){
   colnames(leg_traj)[1]="ID"
   levels(lu_trajectories_final)<-merge((levels(lu_trajectories_final)),leg_traj,by='ID')
   
-  #====calculate summary statistics by zone and overall====
+  #===calculate summary statistics by zone and overall===
   PreQUES_traj_database.melt <- melt(data = PreQUES_traj_database, id.vars=c('Z_NAME','Traj', 'Traj_Code'), measure.vars=c('COUNT'))
   PreQUES_traj_database.zone <- dcast(data = PreQUES_traj_database.melt, formula = Z_NAME ~ Traj_Code, fun.aggregate = sum)
   PreQUES_traj_database.overal <- dcast(data = PreQUES_traj_database.melt, formula = Traj ~ ., fun.aggregate = sum)
@@ -1005,7 +1040,7 @@ if(analysis.option==3 | analysis.option==0){
   PreQUES_traj_drive.zone$Other<-NULL
   PreQUES_traj_drive.zone$Others<-NULL
   
-  #====plot trajectories map====
+  #===plot trajectories map===
   myColors1 <- brewer.pal(9,"Set1")
   myColors2 <- brewer.pal(8,"Accent")
   myColors3 <- brewer.pal(12,"Paired")
@@ -1061,25 +1096,23 @@ if(analysis.option==3 | analysis.option==0){
   colnames(PreQUES_traj_database.zone)[1]<-c("Trajectories")
   colnames(PreQUES_traj_forest.overal)<-c("Forest cover changes", "Area (Ha)")
   
-  #====Export Data====
+  #===Trajectories Data Export===
   setwd(result_dir)
-  Overall_trajectories<-PreQUES_traj_database.overal
-  Zone_trajectories<-PreQUES_traj_database.zone
-  
-  PreQUES.index.traj=paste( "_", data[1,2], "_", data[2,2], sep="")
+  PreQUES.index.traj=paste( "_",pu_name,"_",data[1,2], "_", data[2,2], sep="")
   eval(parse(text=(paste("PreQUES_traj_database", PreQUES.index.traj, "<-PreQUES_traj_database", sep=""   ))))
   newTraj<-paste("PreQUES_traj_database", PreQUES.index.traj, sep="")
   
-  eval(parse(text=(paste("PreQUES_traj_summary", PreQUES.index.traj, "<-PreQUES_traj_database.overal", sep=""   ))))
-  newTrajsum<-paste("PreQUES_traj_summary", PreQUES.index.traj, sep="")
+  #eval(parse(text=(paste("PreQUES_traj_summary", PreQUES.index.traj, "<-PreQUES_traj_database.overal", sep=""   ))))
+  #newTrajsum<-paste("PreQUES_traj_summary", PreQUES.index.traj, sep="")
   
-  eval(parse(text=(paste("PreQUES_traj_zone", PreQUES.index.traj, "<-PreQUES_traj_database.zone", sep=""   ))))
-  newTrajz<-paste("PreQUES_traj_zone", PreQUES.index.traj, sep="")
+  #eval(parse(text=(paste("PreQUES_traj_zone", PreQUES.index.traj, "<-PreQUES_traj_database.zone", sep=""   ))))
+  #newTrajz<-paste("PreQUES_traj_zone", PreQUES.index.traj, sep="")
   
-  eval(parse(text=(paste("PreQUES_traj_map", PreQUES.index.traj, "<-lu_trajectories_final", sep=""   ))))
-  newTrajmap<-paste("PreQUES_traj_map", PreQUES.index.traj, sep="")
+  #eval(parse(text=(paste("PreQUES_traj_map", PreQUES.index.traj, "<-lu_trajectories_final", sep=""   ))))
+  #newTrajmap<-paste("PreQUES_traj_map", PreQUES.index.traj, sep="")
   
-  command<-paste("resave(", newTraj, ",", newTrajsum, ",",newTrajz,",",newTrajmap, ",", sep="")
+  #command<-paste("resave(", newTraj, ",", newTrajsum, ",",newTrajz,",",newTrajmap, ",", sep="")
+  command<-paste("resave(", newTraj,",", sep="")
   command<-paste(command,"file='",basename(proj.file),"')", sep="")
   
   #list.landuse<-ls(pattern="landuse_t")
@@ -1232,6 +1265,24 @@ if(analysis.option==3 | analysis.option==0){
 
 command2<-paste("start ", "winword ", result_dir, "/LUMENS_Pre-QUES_change_report.lpr", sep="" )
 shell(command2)
+
+#====write LUMENS log file====
+add.log<-data.frame(IDX=(PreQUES.index-1), 
+                          MODULE="Pre-QuES", 
+                          DATE=format(Sys.time(), "%d-%m%-%Y"),
+                          TIME=format(Sys.time(), "%X"),
+                          LU1=data[1,1],
+                          LU2=data[2,1],
+                          PU=pu[1],
+                          T1=T1,
+                          T2=T2,
+                          LOOKUP_LC=Look_up_table,
+                          LOOKUP_ZONE="From DB",
+                          NODATA=raster.nodata,
+                          ANALYSIS_OPTION=analysis.option,
+                          OUTPUT_FOLDER=result_dir, row.names=NULL)
+log.preques<-na.omit(rbind(log.preques,add.log))
+write.csv(log.preques, paste(user_path,"/LUMENS/LUMENS_pre_ques.log", sep=""))
 
 
 #CLEAN ENVIRONMENT
