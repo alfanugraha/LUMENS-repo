@@ -455,7 +455,7 @@ write.dbf(Ov_chg, "Overall_change.dbf")
 write.dbf(data_merge, "Changes_database.dbf")
 write.dbf(Ov_chg.ha, "Overall_change_in_hectares.dbf")
 write.dbf(Ov_chg.rate, "Overall_change_in_rates.dbf")
-writeRaster(luchg, filename="lulcc_map.tif", format="GTiff", overwrite=TRUE)
+writeRaster(luchg_map, filename="lulcc_map.tif", format="GTiff", overwrite=TRUE)
 write.dbf(luchg_att, "lulcc_map.dbf")
 
 
