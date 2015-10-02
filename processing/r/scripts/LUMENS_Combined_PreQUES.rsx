@@ -313,7 +313,7 @@ if(check_lucdb){
   colnames(lookup_z)[2]="Z_NAME"
   data_merge <- as.data.frame(merge(data_merge,lookup_z,by="ZONE"))
   
-  eval(parse(text=(paste("write.dbf(data_merge,'lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep=""))))
+  #eval(parse(text=(paste("write.dbf(data_merge,'lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep=""))))
 }
 colnames(lookup_l)<-c("ID", "CLASS")
 colnames(lookup_z)<-c("ID", "ZONE")
@@ -328,15 +328,19 @@ data_merge_sel <- data_merge[ which(data_merge$COUNT > 0),]
 data_merge_sel$LU_CHG <- do.call(paste, c(data_merge_sel[c("LC_t1", "LC_t2")], sep = " to "))
 
 #====Create land use change map====
-luchg<-data_merge_sel
-luchg$ID_LC1<-as.numeric(as.character((luchg$ID_LC1)))
-luchg$ID_LC2<-as.numeric(as.character((luchg$ID_LC2)))
-luchg$ID<-luchg$ID_LC1+(luchg$ID_LC2*100)
-eval(parse(text=(paste("luchg_map<-overlay(", data[1,1], ",", data[2,1], ",fun=function(x,y){return(x+(y*100))})", sep=""))))
-luchg_att<-as.data.frame(freq(luchg_map))
-luchg_att$count<-luchg_att$count*Spat_res
-colnames(luchg_att)<-c("ID","AREA")
-luchg_att<-merge(luchg_att,luchg,by="ID")
+if(check_lucdb){
+  luchg<-data_merge_sel
+  luchg$ID_LC1<-as.numeric(as.character((luchg$ID_LC1)))
+  luchg$ID_LC2<-as.numeric(as.character((luchg$ID_LC2)))
+  luchg$ID<-luchg$ID_LC1+(luchg$ID_LC2*100)
+  eval(parse(text=(paste("luchg_map<-overlay(", data[1,1], ",", data[2,1], ",fun=function(x,y){return(x+(y*100))})", sep=""))))
+  luchg_att<-as.data.frame(freq(luchg_map))
+  luchg_att$count<-luchg_att$count*Spat_res
+  colnames(luchg_att)<-c("ID","AREA")
+  luchg_att<-merge(luchg_att,luchg,by="ID")
+  eval(parse(text=(paste("writeRaster(luchg_map, filename='luchgmap_", pu_name ,"_", T1, "_", T2, ".tif', format='GTiff', overwrite=TRUE)", sep=""))))
+  eval(parse(text=(paste("write.dbf(luchg_att, 'lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep="")))) 
+}
 
 lg_chg <- data_merge_sel
 lg_chg$ID1<-as.numeric(as.character((lg_chg$ID_LC1)))
@@ -455,9 +459,6 @@ write.dbf(Ov_chg, "Overall_change.dbf")
 write.dbf(data_merge, "Changes_database.dbf")
 write.dbf(Ov_chg.ha, "Overall_change_in_hectares.dbf")
 write.dbf(Ov_chg.rate, "Overall_change_in_rates.dbf")
-writeRaster(luchg_map, filename="lulcc_map.tif", format="GTiff", overwrite=TRUE)
-write.dbf(luchg_att, "lulcc_map.dbf")
-
 
 #====ALPHA BETA TABLE AND CHART====
 alphabeta<-function(cross_temp_all, lookup_cover, t1, t2, area.analysis) {
@@ -589,7 +590,7 @@ landscape.alphabeta.plot<-alphabeta.plot(landscape.alphabeta, T1, T2,paste("Kese
 if(analysis.option==2 | analysis.option==0){
   #ALPHA BETA AT PLANNING UNIT LEVEL
   for(i in 1:nrow(lookup_z)){
-  	alpha_beta_database<-data.frame()
+    alpha_beta_database<-data.frame()
     if (i==1){
       tryCatch({
         zone_id<-lookup_z$ID[i]
