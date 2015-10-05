@@ -166,6 +166,12 @@ class ProcessingPlugin:
              interface.iface.mainWindow())
         self.mRasterPlanningUnitLDBMenu.triggered.connect(self.openRasterPlanningUnitLDB)
         self.mAddDataMenu.addAction(self.mRasterPlanningUnitLDBMenu)
+
+        self.mDelDataMenu = QAction(QIcon(":/processing/images/lumens.png"),
+             QCoreApplication.translate("Database", "Delete LUMENS data"),
+             interface.iface.mainWindow())
+        self.mDelDataMenu.triggered.connect(self.openDelData)
+        self.mDatabaseMenu.addAction(self.mDelDataMenu)
         
         self.mImportLDBMenu = QAction(QIcon(":/processing/images/lumens.png"),
              QCoreApplication.translate("Database", "Import LUMENS database"),
@@ -247,7 +253,7 @@ class ProcessingPlugin:
         self.mLCCMenu = QAction(QIcon(":/processing/images/pre-ques.png"),
              QCoreApplication.translate("QUES", "Land cover change analysis"),
              interface.iface.mainWindow())
-        self.mLCCMenu.triggered.connect(self.openPreQUESChange)
+        self.mLCCMenu.triggered.connect(self.openLCC)
         self.mPreQuesMenu.addAction(self.mLCCMenu)
         
         self.mLCTMenu = QAction(QIcon(":/processing/images/pre-ques.png"),
@@ -479,17 +485,20 @@ class ProcessingPlugin:
         self.mLEDSMenu = QMenu(QCoreApplication.translate("SCIENDO", "Low emission development analysis"))
         self.mSciendoMenu.addMenu(self.mLEDSMenu)  
 
+        self.mHistBaselineMenu = QMenu(QCoreApplication.translate("SCIENDO", "Historical baseline"))
+        self.mLEDSMenu.addMenu(self.mHistBaselineMenu) 
+
         self.mHistBaselineAnnMenu = QAction(QIcon(":/processing/images/sciendo.png"),
-             QCoreApplication.translate("SCIENDO", "Historical Baseline Annual Projection"),
+             QCoreApplication.translate("SCIENDO", "Annual Projection"),
              interface.iface.mainWindow()) 
         self.mHistBaselineAnnMenu.triggered.connect(self.openHistAnnualProj)
-        self.mLEDSMenu.addAction(self.mHistBaselineAnnMenu)
+        self.mHistBaselineMenu.addAction(self.mHistBaselineAnnMenu)
 
-        self.mHistBaselineMenu = QAction(QIcon(":/processing/images/sciendo.png"),
-             QCoreApplication.translate("SCIENDO", "Projection of historical baseline"),
+        self.mBasedPeriodeMenu = QAction(QIcon(":/processing/images/sciendo.png"),
+             QCoreApplication.translate("SCIENDO", "Based on period"),
              interface.iface.mainWindow()) 
-        self.mHistBaselineMenu.triggered.connect(self.openHistBaseline)
-        self.mLEDSMenu.addAction(self.mHistBaselineMenu)
+        self.mBasedPeriodeMenu.triggered.connect(self.openHistBaselineGUI)
+        self.mHistBaselineMenu.addAction(self.mBasedPeriodeMenu)
         
         self.mDriversAnalysisMenu = QAction(QIcon(":/processing/images/sciendo.png"),
              QCoreApplication.translate("SCIENDO", "Drivers analysis"),
@@ -511,27 +520,28 @@ class ProcessingPlugin:
         # self.mLEDSMenu.addAction(self.mCalcEmMenu)
         #=======================================================================
         
-        
-        self.mCalcEmMultScenMenu = QAction(QIcon(":/processing/images/sciendo.png"),
-             QCoreApplication.translate("SCIENDO", "Compare scenario"),
-             interface.iface.mainWindow()) 
-        self.mCalcEmMultScenMenu.triggered.connect(self.openCompareScenario)
-        self.mLEDSMenu.addAction(self.mCalcEmMultScenMenu)
-   
-        self.mBuildScenarioMenu = QMenu(QCoreApplication.translate("SCIENDO", "Build scenario"))
-        self.mLEDSMenu.addMenu(self.mBuildScenarioMenu)  
-        
-        self.mAbacusScenarioMenu = QAction(QIcon(":/processing/images/sciendo.png"),
-             QCoreApplication.translate("SCIENDO", "Using proportion of area"),
-             interface.iface.mainWindow()) 
-        self.mAbacusScenarioMenu.triggered.connect(self.openAbacusScenario)
-        self.mBuildScenarioMenu.addAction(self.mAbacusScenarioMenu)
+   #============================================================================
+   #      self.mCalcEmMultScenMenu = QAction(QIcon(":/processing/images/sciendo.png"),
+   #           QCoreApplication.translate("SCIENDO", "Compare scenario"),
+   #           interface.iface.mainWindow()) 
+   #      self.mCalcEmMultScenMenu.triggered.connect(self.openCompareScenario)
+   #      self.mLEDSMenu.addAction(self.mCalcEmMultScenMenu)
+   # 
+   #      self.mBuildScenarioMenu = QMenu(QCoreApplication.translate("SCIENDO", "Build scenario"))
+   #      self.mLEDSMenu.addMenu(self.mBuildScenarioMenu)  
+   #      
+   #      self.mAbacusScenarioMenu = QAction(QIcon(":/processing/images/sciendo.png"),
+   #           QCoreApplication.translate("SCIENDO", "Using proportion of area"),
+   #           interface.iface.mainWindow()) 
+   #      self.mAbacusScenarioMenu.triggered.connect(self.openAbacusScenario)
+   #      self.mBuildScenarioMenu.addAction(self.mAbacusScenarioMenu)
+   #============================================================================
         
         self.mAbacusAbsAreaMenu = QAction(QIcon(":/processing/images/sciendo.png"),
-             QCoreApplication.translate("SCIENDO", "Using absolute area"),
+             QCoreApplication.translate("SCIENDO", "Build scenario"),
              interface.iface.mainWindow()) 
         self.mAbacusAbsAreaMenu.triggered.connect(self.openAbacusAbsArea)
-        self.mBuildScenarioMenu.addAction(self.mAbacusAbsAreaMenu)        
+        self.mLEDSMenu.addAction(self.mAbacusAbsAreaMenu)        
 
         self.mLUCModelingMenu = QMenu(QCoreApplication.translate("SCIENDO", "Land use change modeling"))
         self.mSciendoMenu.addMenu(self.mLUCModelingMenu)  
@@ -2018,7 +2028,7 @@ class ProcessingPlugin:
             return  
 
     def readLUMENSLogFile(self):
-        self.LUMENSLogFile = os.path.join(QgsApplication.systemEnvVars()['USERPROFILE'], "LUMENS\\LUMENS.log")
+        self.LUMENSLogFile = os.path.join(QgsApplication.systemEnvVars()['PUBLIC'], "LUMENS\\LUMENS.log")
         try:
             if os.stat(self.LUMENSLogFile).st_size != 0:
                 lines = open(self.LUMENSLogFile).read().split(',')
@@ -2076,6 +2086,9 @@ class ProcessingPlugin:
     def openCloseLDB(self):
         processing.runalg("modeler:lumens_close_database")
         self.readLUMENSLogFile()
+
+    def openDelData(self):
+        processing.runalg("r:lumensdeletedata")
 
     def openImportLDB(self):
         folder = \
