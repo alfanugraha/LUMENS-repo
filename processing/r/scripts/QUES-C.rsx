@@ -720,7 +720,6 @@ write.dbf(em.matrix.total,"Total_Emission_Matrix.dbf ")
 write.dbf(seq.matrix.total, "Total_Sequestration_Matrix.dbf")
 
 eval(parse(text=(paste("QUESC_database_", pu_name, "_", data[1,2], "_", data[2,2], " <- data_merge", sep=""))))
-QUESC.index = QUESC.index + 1
 eval(parse(text=(paste("resave(QUESC_database_", pu_name, "_", data[1,2], "_", data[2,2], ", QUESC.index,lut.c, file=proj.file)", sep=""))))
 
 for (i in 1:length(zone_lookup$ID)){
@@ -948,8 +947,6 @@ largestSeq<-ggplot(data=tb_seq_total_10, aes(x=reorder(LU_CODE, -seq), y=(seq)))
   theme(plot.title = element_text(lineheight= 5, face="bold")) + scale_y_continuous() +
   theme(axis.title.x=element_blank(), axis.text.x = element_text(size=8),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank())
-
-setwd(dirQUESC)
 
 printArea <- function(x){
   format(x, digits=15, big.mark=",")
