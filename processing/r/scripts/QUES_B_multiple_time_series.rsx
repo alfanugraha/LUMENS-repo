@@ -252,7 +252,7 @@ for(i in 1:nrow(data3)){
     
   }
   #No data check raster
-  lu.nodata.check<-landuse_t1_temp
+  lu.nodata.check<-Landuse_t1_temp
   for(i in 2:nrow(data3)){
     eval(parse(text=(paste("lu.nodata.check<-lu.nodata.check*Landuse_t",i,"_temp", sep=''))))
   }
