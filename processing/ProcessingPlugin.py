@@ -215,6 +215,12 @@ class ProcessingPlugin:
         # self.mReconcileByRefClassMenu.addAction(self.mReconcileStep4Menu)
         #=======================================================================
 
+        self.mCombinePUMenu = QAction(QIcon(":/processing/images/reconcile.png"),
+             QCoreApplication.translate("PUR", "Combine planning unit"),
+             interface.iface.mainWindow())
+        self.mCombinePUMenu.triggered.connect(self.openCombinePU)
+        self.mPurMenu.addAction(self.mCombinePUMenu)
+
         self.mReconcileByAHPMenu = QAction(QIcon(":/processing/images/reconcile.png"),
              QCoreApplication.translate("PUR", "Reconcile using AHP"),
              interface.iface.mainWindow())
@@ -1757,6 +1763,10 @@ class ProcessingPlugin:
             QMessageBox.information(None,QCoreApplication.translate("PUR", "Conduct reconciliation"), \
                 QCoreApplication.translate("PUR","R provider is not configured.\nPlease configure it before running this model.")) 
             return
+
+    def openCombinePU(self):
+        processing.runalg("r:combineplanningunit")
+        
         
     def openDominantHRU(self):
         folder = \
