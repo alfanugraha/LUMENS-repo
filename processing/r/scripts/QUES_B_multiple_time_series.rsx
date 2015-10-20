@@ -16,6 +16,8 @@
 ##habitat.recovery=output raster
 ##passfilenames
 
+
+#==== packages ====
 library(DBI)
 library(raster)
 library(RSQLite)
@@ -38,16 +40,7 @@ library(gridExtra)
 library(pracma)
 library(rgeos)
 
-result_dir<-paste(dirname(proj.file),"/QUES/QUES-B/", sep="")
-setwd(result_dir)
-
-Look_up_table<-Land_cover_lookup_table
-raster.nodata
-
-time_start<-paste(eval(parse(text=(paste("Sys.time ()")))), sep="")
-lut.lc<-read.table(Look_up_table, header=TRUE, sep=",")
-
-#====A READ LUMENS LOG FILE====
+#====A1 READ LUMENS LOG FILE====
 LUMENS_log <- as.data.frame(Sys.info())
 OS <- substr(as.character(LUMENS_log[2,1]), 1, 2)
 username <- as.character(LUMENS_log[6,1])
@@ -60,6 +53,40 @@ LUMENS_path_user <- paste(user_path,"/LUMENS/LUMENS.log", sep="")
 log.file<-read.table(LUMENS_path_user, header=FALSE, sep=",")
 proj.file<-paste(log.file[1,1], "/", log.file[1,2],"/",log.file[1,2], ".lpj", sep="")
 load(proj.file)
+
+result_dir<-paste(dirname(proj.file),"/QUES/QUES-B/", sep="")
+setwd(result_dir)
+
+Look_up_table<-Land_cover_lookup_table
+raster.nodata
+
+time_start<-paste(eval(parse(text=(paste("Sys.time ()")))), sep="")
+lut.lc<-read.table(Look_up_table, header=TRUE, sep=",")
+
+#===A2 Check LUMENS QuES-B log file====
+if (file.exists(paste(user_path,"/LUMENS/LUMENS_quesb.log", sep=""))) {
+  log.quesb<-read.table(paste(user_path,"/LUMENS/LUMENS_quesb.log", sep=""), sep=",", header=T, row.names=1)
+  print("LUMENS Pre-QuES log file is available")
+} else {
+  log.quesb<-data.frame(IDX=NA, 
+                          MODULE=NA, 
+                          DATE=NA,
+                          TIME=NA,
+                          LU1=NA,
+                          LU2=NA,
+                          PU=NA,
+                          T1=NA,
+                          T2=NA,
+                          LOOKUP_LC=NA,
+                          LOOKUP_ZONE=NA,
+                          NODATA=NA,
+                          GRIDRES=NA,
+                          WINDOWSIZE=NA,
+                          WINDOWSHAPE=NA,
+                          CLASSDESC=NA,
+                          EDGECON=NA,
+                          OUTPUT_FOLDER=NA, row.names=NULL)
+}
 
 #====B READ LANDUSE DATA FROM LUMENS DATABASE====
 per<-as.data.frame(ls(pattern="freq"))
@@ -79,10 +106,10 @@ command2<-NULL
 for(i in 1:n) {
   if (i!=n){
     command1<-paste(command1,"period", i, ",", sep="")
-    command2<-paste(command2,"landuse_t", i, ",", sep="")
+    command2<-paste(command2,"landuse_tt", i, ",", sep="")
   } else {
     command1<-paste(command1,"period", i, sep="")
-    command2<-paste(command2,"landuse_t", i, sep="")
+    command2<-paste(command2,"landuse_tt", i, sep="")
   }
 }
 
@@ -112,9 +139,9 @@ rr<-nrow(per)
 command4<-NULL
 for(i in 1:rr) {
   if (i!=rr){
-    command4<-paste(command4,"freqLanduse_", i, ",", sep="")
+    command4<-paste(command4,"freqlanduse_t", i, ",", sep="")
   } else {
-    command4<-paste(command4,"freqLanduse_", i, sep="")
+    command4<-paste(command4,"freqlanduse_t", i, sep="")
   }
 }
 #command 2 & command 4 buat apa ya?
@@ -195,30 +222,41 @@ if (grepl("+units=m", as.character(ref@crs))){
 #Raster nodata check 
 nodata.cek<-0
 for (i in 1: nrow(data3)){
-  raster.cek<-paste(getwd(),"/Landuse_NA_", data3[i,2],".tif", sep='')
-  eval(parse(text=(paste("if( file.exists('",raster.cek ,"')){print('Landuse_NA_", data3[i,2],".tif is available'); nodata.cek<-nodata.cek+1}", sep=""))))
+  raster.cek<-paste(getwd(),"/landuse_tNA_", data3[i,2],".tif", sep='')
+  eval(parse(text=(paste("if( file.exists('",raster.cek ,"')){print('landuse_tNA_", data3[i,2],".tif is available'); nodata.cek<-nodata.cek+1}", sep=""))))
 }
 #RUN NODATA SYNC FOR ALL RASTER FILES IF NOT AVAILABLE YET IN QUES-B DIRECTORY
 if (nodata.cek<nrow(data3)){
 #Create temporary boolean raster value
 for(i in 1: nrow(data3)){
-  eval(parse(text=(paste("Landuse_",i,"<- reclassify(",data3[i,1],",cbind(raster.nodata,NA))", sep=''))))
-  eval(parse(text=(paste("Landuse_",i,"_temp<-Landuse_",i,">=0", sep=''))))
+  eval(parse(text=(paste("landuse_t",i,"<- reclassify(",data3[i,1],",cbind(raster.nodata,NA))", sep=''))))
+  eval(parse(text=(paste("Landuse_t",i,"_temp<-landuse_t",i,">=0", sep=''))))
   
 }
 #No data check raster
-lu.nodata.check<-Landuse_1_temp
+lu.nodata.check<-Landuse_t1_temp
 for(i in 2:nrow(data3)){
-  eval(parse(text=(paste("lu.nodata.check<-lu.nodata.check*Landuse_",i,"_temp", sep=''))))
+  eval(parse(text=(paste("lu.nodata.check<-lu.nodata.check*Landuse_t",i,"_temp", sep=''))))
 }
 
 #syncronized nodata raster map
 for(i in 1:nrow(data3)){
-  eval(parse(text=(paste("Landuse_",i,"<-lu.nodata.check*Landuse_",i, sep=''))))
-  lu_path<-paste(getwd(),"/Landuse_NA_", data3[i,2],".tif", sep="")
-  eval(parse(text=(paste("writeRaster(Landuse_",i,",  filename=",'basename(lu_path)',", format='GTiff', overwrite=TRUE, NAflag=255)", sep=''))))
+  eval(parse(text=(paste("landuse_t",i,"<-lu.nodata.check*landuse_t",i, sep=''))))
+  lu_path<-paste(getwd(),"/landuse_tNA_", data3[i,2],".tif", sep="")
+  eval(parse(text=(paste("writeRaster(landuse_t",i,",  filename=",'basename(lu_path)',", format='GTiff', overwrite=TRUE, NAflag=255)", sep=''))))
 }
-} else {print ("Landuse_NA files are ready")}
+} else {print ("landuse_tNA files are ready")
+  for(i in 1: nrow(data3)){
+    eval(parse(text=(paste("landuse_t",i,"<- reclassify(",data3[i,1],",cbind(raster.nodata,NA))", sep=''))))
+    eval(parse(text=(paste("Landuse_t",i,"_temp<-landuse_t",i,">=0", sep=''))))
+    
+  }
+  #No data check raster
+  lu.nodata.check<-Landuse_t1_temp
+  for(i in 2:nrow(data3)){
+    eval(parse(text=(paste("lu.nodata.check<-lu.nodata.check*Landuse_t",i,"_temp", sep=''))))
+  }
+        }
 
 #====H Define WD, Output folder, raster lu1, lu2, pu====
 
@@ -233,8 +271,8 @@ result_dir2<-paste(result_dir, quesb_folder, sep='')
 result_dir3<-paste(dirname(proj.file),"/QUES/", sep="")
 
 #landuse path
-lu1_path<-paste(getwd(),"/Landuse_NA_", data[1,2],".tif", sep="")
-lu2_path<-paste(getwd(),"/Landuse_NA_", data[2,2],".tif", sep="")
+lu1_path<-paste(getwd(),"/landuse_tNA_", data[1,2],".tif", sep="")
+lu2_path<-paste(getwd(),"/landuse_tNA_", data[2,2],".tif", sep="")
 lu1<-eval(parse(text=(paste(data[1,1], sep=''))))
 lu2<-eval(parse(text=(paste(data[2,1], sep=''))))
 zone<-eval(parse(text=(paste(pu[1], sep=''))))
@@ -347,7 +385,7 @@ contab<-read.table(file=edgecon, header=TRUE, sep=',', skip=1)
 contab2<-round(contab, digits=2)
 
 #raster file directory for landuse
-#dirname_raster<-dirname(paste(getwd(),"/Landuse_NA_", data[1,2],".tif", sep=''))
+#dirname_raster<-dirname(paste(getwd(),"/landuse_tNA_", data[1,2],".tif", sep=''))
 #setwd(dirname_raster)
 
 #Clean previous teci process
@@ -543,8 +581,11 @@ write.csv(foc.area.stats, foc.area.stats.filename, row.names=TRUE)
 #combine teci_zstat with planning unit name
 
 #QUES-B database
-dbase.quesb.name<-paste("QuESB_database_", location,'_',T1,'_',T2,'.ldbase', sep='')
-save(lu1_path,lu1,T1,lu2_path,lu2,T2,zone,zone_lookup,location,totarea,lookup_bh,polygrid,sumtab1.init,difa.init,AUC.init,foc.area.init,mwfile.init,zstat.init,foc.area.stats.init,sumtab1.final,difa.final,AUC.final,mwfile.final,zstat.final,foc.area.stats.final, file=dbase.quesb.name)
+#dbase.quesb.name<-paste("QuESB_database_", location,'_',T1,'_',T2,'.ldbase', sep='')
+#save(lu1_path,lu1,T1,lu2_path,lu2,T2,zone,zone_lookup,location,totarea,lookup_bh,polygrid,
+#     difa.table.init,difa.init,AUC.init,foc.area.init,mwfile.init,zstat.init,foc.area.stats.init,
+#     difa.table.final,difa.final,AUC.final,mwfile.final,zstat.final,foc.area.stats.final, 
+#    file=dbase.quesb.name)
 #load(dbase.quesb.name)
 
 #====P MULTI-TEMPORAL ANALYSIS====
@@ -931,8 +972,7 @@ if (check_changemap && check_ludb){
   print (paste("Pre-QUES Land Use Change Database and Changemap for ",T1,"-",T2, " is not found", sep=""))
 }
 
-
-#====Habitat extent Map t1====
+#====Plot Habitat extent Map t1====
 plot.mw.init<-gplot(mwfile.init.chk*lu.nodata.check, maxpixels=100000) + geom_raster(aes(fill=value)) +
   coord_equal() + scale_fill_gradient(low = "#FFCC66", high="#003300", guide="colourbar") +
   theme(plot.title = element_text(lineheight= 5, face="bold")) +
@@ -943,7 +983,7 @@ plot.mw.init<-gplot(mwfile.init.chk*lu.nodata.check, maxpixels=100000) + geom_ra
          legend.key.height = unit(0.375, "cm"),
          legend.key.width = unit(0.375, "cm"))
 
-#====Habitat extent Map t2====
+#====Plot Habitat extent Map t2====
 plot.mw.fin<-gplot(mwfile.final, maxpixels=100000) + geom_raster(aes(fill=value)) +
   coord_equal() + scale_fill_gradient(low = "#FFCC66", high="#003300", guide="colourbar") +
   theme(plot.title = element_text(lineheight= 5, face="bold")) +
@@ -954,7 +994,7 @@ plot.mw.fin<-gplot(mwfile.final, maxpixels=100000) + geom_raster(aes(fill=value)
          legend.key.height = unit(0.375, "cm"),
          legend.key.width = unit(0.375, "cm"))
 
-#====Habitat loss and degradation====
+#====Plot Habitat loss and degradation====
 #plot.background<-gplot(background, maxpixels=100000) + geom_raster(aes(fill=as.factor(value)))
 tryCatch({
   maxval<-ceiling(maxValue(habitat.degradation)/10)
@@ -990,7 +1030,7 @@ tryCatch({
   background[background==-maxval]<-1
 },error=function(e){cat("skipping habitat loss plot :",conditionMessage(e), "\n")})
 
-#====Habitat gain and recovery ====
+#====Plot Habitat gain and recovery ====
 #plot.background<-gplot(background, maxpixels=100000) + geom_raster(aes(fill=as.factor(value)))
 tryCatch({
   maxval<-ceiling(maxValue(habitat.recovery)/10)
@@ -1044,7 +1084,9 @@ chapter3<-"\\b\\fs24 III. MAP OF DISSIMILARITIES FROM FOCAL AREAS RELATIVE TO ZO
 chapter4<-"\\b\\fs24 IV. DEGREE OF INTEGRATION OF FOCAL AREA (DIFA) \\b0\\fs20"
 chapter5<-"\\b\\fs24 V. HABITAT CHANGE ANALYSIS \\b0\\fs20"
 chapter6<-"\\b\\fs24 VI. HABITAT QUALITY COMPARISON \\b0\\fs20"
-chapter7<-"\\b\\fs24 VI. TECI ZONAL STATISTICS \\b0\\fs20"
+chapter7<-"\\b\\fs24 VII. TECI ZONAL STATISTICS \\b0\\fs20"
+
+#==== Report I. DATA INPUT ====
 rtffile <- RTF("LUMENS_QUES-B_report.lpr", font.size=9)
 addParagraph(rtffile, title)
 addParagraph(rtffile, sub_title)
@@ -1079,9 +1121,11 @@ addNewLine(rtffile, n=1)
 addNewLine(rtffile, n=1)
 addNewLine(rtffile, n=1)
 
+#==== Report II. Focal Area Changes ====
+addParagraph(rtffile, chapter2)
+
 if(maxValue(chk_loss)>0)
 {
-  addParagraph(rtffile, chapter2)
   addNewLine(rtffile)
   text <- paste("\\b \\fs20 Focal Area Change Map of \\b0 \\fs20 ", area_name_rep, I_O_period_1_rep, "\\b \\fs20 - \\b0 \\fs20 ", I_O_period_2_rep,  sep="")
   addParagraph(rtffile, text)
@@ -1118,6 +1162,7 @@ addParagraph(rtffile, text)
 addTable(rtffile, foc.area.stats, row.names=TRUE)
 addNewLine(rtffile, n=1)
 
+#==== Report III.  Map of dissimilarities from focal area====
 addParagraph(rtffile, chapter3)
 addNewLine(rtffile)
 text <- paste("\\b \\fs20 Map of dissimilarities from focal areas in \\b0 \\fs20 ",area_name_rep, I_O_period_1_rep,'relative to Protected Areas', sep="")
@@ -1129,6 +1174,7 @@ addParagraph(rtffile, text)
 addPlot.RTF(rtffile, plot.fun=plot, width=6.7, height=4, res=150, plot.mw.fin )
 addNewLine(rtffile, n=1)
 
+#==== Report IV.  DIFA Chart ====
 addParagraph(rtffile, chapter4)
 addNewLine(rtffile)
 text <- paste("\\b \\fs20 Degree of Integration of Focal Area (DIFA) \\b0 \\fs20 ")
@@ -1141,7 +1187,7 @@ text <- paste(I_O_period_1_rep, " : ", AUC.init, "%", "          ;    " ,I_O_per
 addParagraph(rtffile, text)
 addNewLine(rtffile, n=1)
 
-
+#==== Report V.  Habitat Change Analysis ====
 addParagraph(rtffile, chapter5)
 addNewLine(rtffile)
 tryCatch({
@@ -1149,9 +1195,9 @@ tryCatch({
   addParagraph(rtffile, text)
   addPlot.RTF(rtffile, plot.fun=print, width=6.7, height=3, res=150, plot.HD)
   addNewLine(rtffile, n=1)
-  #text <- paste("\\b \\fs20 Habitat degradation due to LULCC in situ \\b0 \\fs20 ", sep="")
-  #addParagraph(rtffile, text)
-  #addTable(rtffile, luchg.degradation.10.with.change)
+  text <- paste("\\b \\fs20 Habitat degradation due to LULCC \\b0 \\fs20 ", sep="")
+  addParagraph(rtffile, text)
+  addTable(rtffile, luchg.db.degrad[1:10,])
   #addNewLine(rtffile, n=1)
   #text <- paste("\\b \\fs20 Habitat degradation due to neighboring focal area change \\b0 \\fs20 ", sep="")
   #addParagraph(rtffile, text)
@@ -1171,10 +1217,10 @@ tryCatch({
     addParagraph(rtffile, text)
     addPlot.RTF(rtffile, plot.fun=print, width=6.7, height=3, res=150, plot.HL)
     addNewLine(rtffile, n=1)
-    #text <- paste("\\b \\fs20 Top 10 habitat loss due adjacent focal area loss \\b0 \\fs20 ", sep="")
-    #addParagraph(rtffile, text)
-    #addTable(rtffile, luchg.loss.10)
-    #addNewLine(rtffile, n=1)
+    text <- paste("\\b \\fs20 Top 10 habitat loss due to focal area loss \\b0 \\fs20 ", sep="")
+    addParagraph(rtffile, text)
+    addTable(rtffile, luchg.db.loss[1:10,])
+    addNewLine(rtffile, n=1)
     #text <- paste("\\b \\fs20 Habitat loss statistics by zone/planning unit \\b0 \\fs20 ", sep="")
     #addParagraph(rtffile, text)
     #addTable(rtffile, zstat.habitat.loss.NA)
@@ -1188,10 +1234,10 @@ tryCatch({
   addParagraph(rtffile, text)
   addPlot.RTF(rtffile, plot.fun=print, width=6.7, height=3, res=150, plot.HR)
   addNewLine(rtffile, n=1)
-  #text <- paste("\\b \\fs20 Habitat recovery due to LULCC in situ \\b0 \\fs20 ", sep="")
-  #addParagraph(rtffile, text)
-  #addTable(rtffile, luchg.recovery.10.with.change)
-  #addNewLine(rtffile, n=1)
+  text <- paste("\\b \\fs20 Habitat recovery due to LULCC  \\b0 \\fs20 ", sep="")
+  addParagraph(rtffile, text)
+  addTable(rtffile, luchg.db.recovery[1:10,])
+  addNewLine(rtffile, n=1)
   #text <- paste("\\b \\fs20 Habitat recovery due to neighboring focal area change \\b0 \\fs20 ", sep="")
   #addParagraph(rtffile, text)
   #addTable(rtffile, luchg.recovery.10.no.change)
@@ -1212,9 +1258,9 @@ tryCatch({
       addPlot.RTF(rtffile, plot.fun=print, width=6.7, height=3, res=150, plot.HG)
     } else {print('skipping habitat gain plot ')}
     addNewLine(rtffile, n=1)
-    #text <- paste("\\b \\fs20 Top 10 habitat gain due adjacent focal area loss \\b0 \\fs20 ", sep="")
-    #addParagraph(rtffile, text)
-    #addTable(rtffile, luchg.gain.10)
+    text <- paste("\\b \\fs20 Top 10 habitat gain due adjacent focal area loss \\b0 \\fs20 ", sep="")
+    addParagraph(rtffile, text)
+    addTable(rtffile, lluchg.db.gain[1:10,])
     #addNewLine(rtffile, n=1)
     #text <- paste("\\b \\fs20 Habitat gain statistics by zone/planning unit \\b0 \\fs20 ", sep="")
     #addParagraph(rtffile, text)
@@ -1223,26 +1269,34 @@ tryCatch({
   } else {print("No habitat gain found")}
 },error=function(e){cat("skipping habitat gain plot :",conditionMessage(e), "\n")})
 
-
-addParagraph(rtffile, chapter6)
+#==== XXX Report VI.  Habitat Quality Comparison XXX ====
+#addParagraph(rtffile, chapter6)
 addNewLine(rtffile)
-tryCatch({
+#tryCatch({
   #text <- paste("\\b \\fs20 Habitat Quality Comparison in \\b0 \\fs20 ",area_name_rep, I_O_period_1_rep, "\\b \\fs20 - \\b0 \\fs20 ", I_O_period_2_rep,  sep="")
   #addParagraph(rtffile, text)
   #addPlot.RTF(rtffile, plot.fun=print, width=6.7, height=4, res=150, grid.arrange(plot.hb.chg.init, plot.hb.chg.final, ncol=2) )
   #addNewLine(rtffile, n=1)
   #addTable(rtffile, habitat.change)
   #addNewLine(rtffile, n=1)
-},error=function(e){cat("skipping Habitat Quality Comparison analysis:",conditionMessage(e), "\n")})
-addNewLine(rtffile, n=1)
+#},error=function(e){cat("skipping Habitat Quality Comparison analysis:",conditionMessage(e), "\n")})
+#addNewLine(rtffile, n=1)
+
+#==== Report VI.  TECI Zonal Statistics ====
 
 addParagraph(rtffile, chapter7)
 addNewLine(rtffile)
 tryCatch({
+  text <- paste("\\b \\fs20 Habitat degradation zonal statistics \\b0 \\fs20 ",area_name_rep, I_O_period_1_rep, "\\b \\fs20 - \\b0 \\fs20 ", I_O_period_2_rep,  sep="")
+  addParagraph(rtffile, text)
   addTable(rtffile, zstat.habitat.degradation)
   addParagraph(rtffile, "\\b \\fs20 *max, min, mean, and sd are total edge contrast index value representing habitat loss and degradation degree \\b0 \\fs20 ")
   addParagraph(rtffile, "\\b \\fs20 *foc.area or total focal area in is Hectare unit \\b0 \\fs20 ")
   addNewLine(rtffile, n=1)
+  addNewLine(rtffile, n=1)
+  
+  text <- paste("\\b \\fs20 Habitat recovery zonal statistics \\b0 \\fs20 ",area_name_rep, I_O_period_1_rep, "\\b \\fs20 - \\b0 \\fs20 ", I_O_period_2_rep,  sep="")
+  addParagraph(rtffile, text)
   addTable(rtffile, zstat.habitat.recovery)
   addParagraph(rtffile, "\\b \\fs20 *max, min, mean, and sd are total edge contrast index value representing habitat gain and recovery degree \\b0 \\fs20 ")
   addParagraph(rtffile, "\\b \\fs20 *foc.area or total focal area is in Hectare unit \\b0 \\fs20 ")
@@ -1255,4 +1309,57 @@ tryCatch({
   dbase.preques.name<-paste("QuES_B_database_", location,'_',T1,'_',T2,'.ldbase', sep='')
   save(lu1,lu2, zone, lookup_bh, lookup_z, T1, T2, location, mwfile.init,mwfile.final,habitat.degradation,habitat.loss.NA,habitat.gain.NA, habitat.recovery,file=dbase.preques.name)
 },error=function(e){cat("QuES-B database production is failed, re-check your data :",conditionMessage(e), "\n")})
+
+#====Land use change database export====
+#QUESB.index=QUESB.index+1
+eval(parse(text=(paste("QuES_B_data_", data[1,2], "_", data[2,2], "<-data", sep=""   ))))
+newPre<-paste("QuES_B_data_", data[1,2], "_", data[2,2], sep="")
+
+# DIFA TABLE INIT
+QuESB_DIFA_init=paste( "_",pu_name,"_",data[1,2], sep="")
+eval(parse(text=(paste("QuES_B_DIFA_table", QuESB_DIFA_init, "<-difa.table.init", sep=""   ))))
+object_DIFAinit<-paste("QuES_B_DIFA_table", QuESB_DIFA_init, sep="")
+
+#DIFA TABLE FINAL
+QuESB_DIFA_final=paste( "_",pu_name,"_",data[2,2], sep="")
+eval(parse(text=(paste("QuES_B_DIFA_table", QuESB_DIFA_final, "<-difa.table.final", sep=""   ))))
+object_DIFAfinal<-paste("QuES_B_DIFA_table", QuESB_DIFA_final, sep="")
+
+#AUC INIT
+QuESB_AUC_init=paste( "_",pu_name,"_",data[1,2], sep="")
+eval(parse(text=(paste("QuES_B_AUC", QuESB_AUC_init, "<-AUC.init", sep=""   ))))
+object_AUC_init<-paste("QuES_B_AUC", QuESB_AUC_init, sep="")
+
+#AUC FINAL
+QuESB_AUC_final=paste( "_",pu_name,"_",data[2,2], sep="")
+eval(parse(text=(paste("QuES_B_AUC", QuESB_AUC_final, "<-AUC.final", sep=""   ))))
+object_AUC_final<-paste("QuES_B_AUC", QuESB_AUC_final, sep="")
+
+command<-paste("resave(QUESB.index,",object_DIFAinit,",", newPre, ",",object_DIFAfinal, ",",object_AUC_init,",",object_AUC_final,",",  sep="")
+
+setwd(dirname(proj.file))
+command<-paste(command,"file='",basename(proj.file),"')", sep="")
+eval(parse(text=(command)))
+
+#====write LUMENS log file====
+add.log<-data.frame(IDX=(QUESB.index), 
+                    MODULE="QuES-B", 
+                    DATE=format(Sys.time(), "%d-%m%-%Y"),
+                    TIME=format(Sys.time(), "%X"),
+                    LU1=data[1,1],
+                    LU2=data[2,1],
+                    PU=pu[1],
+                    T1=T1,
+                    T2=T2,
+                    LOOKUP_LC=Look_up_table,
+                    LOOKUP_ZONE="From DB",
+                    NODATA=raster.nodata,
+                    GRIDRES=gridres,
+                    WINDOWSIZE=windowsize,
+                    WINDOWSHAPE=window.shape,
+                    CLASSDESC=classdesc,
+                    EDGECON=edgecon,
+                    OUTPUT_FOLDER=result_dir, row.names=NULL)
+log.quesb<-na.omit(rbind(log.quesb,add.log))
+write.csv(log.quesb, paste(user_path,"/LUMENS/LUMENS_quesb.log", sep=""))
 
