@@ -14,7 +14,6 @@ library(RColorBrewer)
 library(rasterVis)
 library(reshape2)
 library(foreign)
-library(dplyr)
 library(tcltk)
 
 #INPUTS
@@ -950,13 +949,13 @@ if(analysis.option==3 | analysis.option==0){
   
   #LAND COVER CHAGE TRAJECTORY INDEXES
   #Calculate deforestation, degradation, and reforestation rate
-  PREQUES_filter_2<-function(idlc1, idlc2, filter1, filter2) {
-    eval(parse(text=( paste("PreQUES_traj_database.filtered<-filter(PreQUES_traj_database,ID_L1",filter1,as.characteridlc1,',','ID_L2',filter2,idlc2,')', sep=''))))
-    #PreQUES_traj_database.filtered<-filter(PreQUES_traj_database,ID_L1 == idlc1, ID_L2 == idlc2)
-    PreQUES_traj_database.filtered<-filter(PreQUES_traj_database.filtered, COUNT!=0)
-    PreQUES_traj_database.filtered <- aggregate(COUNT ~  Z_NAME, data=PreQUES_traj_database.filtered, FUN=sum)
-    return(PreQUES_traj_database.filtered)
-  }
+  #PREQUES_filter_2<-function(idlc1, idlc2, filter1, filter2) {
+  #  eval(parse(text=( paste("PreQUES_traj_database.filtered<-filter(PreQUES_traj_database,ID_L1",filter1,as.characteridlc1,',','ID_L2',filter2,idlc2,')', sep=''))))
+  #  #PreQUES_traj_database.filtered<-filter(PreQUES_traj_database,ID_L1 == idlc1, ID_L2 == idlc2)
+  #  PreQUES_traj_database.filtered<-filter(PreQUES_traj_database.filtered, COUNT!=0)
+  #  PreQUES_traj_database.filtered <- aggregate(COUNT ~  Z_NAME, data=PreQUES_traj_database.filtered, FUN=sum)
+  #  return(PreQUES_traj_database.filtered)
+  #}
   
   #1 Deforestation
   #index.deforest<-PREQUES_filter_2(c(1,2),c(1,2),'==','!=')

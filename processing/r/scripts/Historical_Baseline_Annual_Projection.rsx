@@ -373,6 +373,8 @@ write.table(name.lcc, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=T
 text<-"\n#CARBONSTOCK"
 write(text, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=TRUE, sep="\t")
 colnames(name.lc.temp)[2]<-"LC"
+colnames(lut.c)[2]<-"LC"
+colnames(lut.c)[3]<-"CARBON"
 name.carbon.temp<-merge(name.lc.temp, lut.c, by="LC")
 name.carbon.temp<-name.carbon.temp[c('//lc_id','CARBON')]
 name.carbon<-data.frame()
