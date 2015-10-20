@@ -16,9 +16,9 @@ LUMENS_log <- as.data.frame(Sys.info())
 OS <- substr(as.character(LUMENS_log[2,1]), 1, 2)
 username <- as.character(LUMENS_log[6,1])
 if(OS == "XP") {
-  user_path<-paste("C:/Documents and Settings/", username, sep="")
+  user_path<-paste("C:/Documents and Settings/All Users", sep="")
 } else {
-  user_path<-paste("C:/Users/", username, sep="")
+  user_path<-paste("C:/Users/Public", sep="")
 }
 LUMENS_path_user <- paste(user_path,"/LUMENS/LUMENS.log", sep="")
 log.file<-read.table(LUMENS_path_user, header=FALSE, sep=",")
@@ -38,8 +38,9 @@ if(n==0){
 data.y<-NULL
 data.w<-NULL
 for (q in 1:n) {
-  data.x<-substr(as.character(factor(quesc_list[q,1])), 16, 19)
-  data.z<-substr(as.character(factor(quesc_list[q,1])), 21, 24)
+  n_dta<-nchar(as.character(factor(quesc_list[q,1])))
+  data.x<-substr(as.character(factor(quesc_list[q,1])), (n_dta-8), (n_dta-5))
+  data.z<-substr(as.character(factor(quesc_list[q,1])), (n_dta-3), n_dta)
   if(data.z > data.x){
     data.y<-c(data.y,data.x)
     data.w<-c(data.w,data.z)
@@ -57,6 +58,14 @@ repeat{
   quesc_list<-edit(quesc_list)
   if(sum(quesc_list$usage)==1){
     break
+  } else {
+    msgBox <- tkmessageBox(title = "Based on period",
+                           message = "Choose at least one QUES-C database. Retry?",
+                           icon = "question", 
+                           type = "retrycancel", default="retry")
+    if(as.character(msgBox)=="cancel"){
+      quit()
+    }
   }
 }
 qdata<-cbind(quesc_list,qdata)
@@ -65,17 +74,17 @@ qdata2$usage<-NULL
 quesc_db<-as.character(qdata2[1,1])
 T1<-as.numeric(as.character(qdata2[1,2]))
 T2<-as.numeric(as.character(qdata2[1,3]))
+pu_name<-substr(as.character(factor(quesc_list[q,1])), 16:(n_dta-10), (n_dta-10))
 
 #====CREATE FOLDER AND WORKING DIRECTORY====
 SCIENDO1.index=SCIENDO1.index+1
-hist_folder<-paste("Historical_", location,"_", T1,"_",T2,"_",SCIENDO1.index,sep="")
+hist_folder<-paste("Historical_", pu_name,"_", T1,"_",T2,"_",SCIENDO1.index,sep="")
 result_dir<-paste(dirname(proj.file),"/SCIENDO/", sep="")
 setwd(result_dir)
 dir.create(hist_folder)
 
 result_dir<-paste(result_dir, hist_folder, sep='')
 setwd(result_dir)
-
 
 data<-eval(parse(text=(paste(quesc_db))))
 data2<-eval(parse(text=(paste(quesc_db))))
@@ -98,18 +107,26 @@ data2.cek<- melt(data = data2, id.vars=c('ID_LC1','ZONE'), measure.vars=c('TPM1'
 data2.cek<- dcast(data = data2.cek, formula = ID_LC1 + ZONE ~ ., fun.aggregate = sum)
 colnames(data2.cek)[3]<-"CEK"
 data2.cek1<-subset(data2.cek, CEK==0)
-data2.cek1$ACT<-"Fix"
+if(nrow(data2.cek1)!=0){
+  data2.cek1$ACT<-"Fix"
+}
 data2.cek2<-subset(data2.cek, CEK>0)
-data2.cek2$ACT<-"Ignore"
+if(nrow(data2.cek2)!=0){
+  data2.cek2$ACT<-"Ignore"
+}
 data2.cek<-rbind(data2.cek1,data2.cek2)
 data2.cek$CEK<-NULL
 data3<-merge(data2,data2.cek, by=c("ID_LC1", "ZONE"))
 data3.cek1<-subset(data3, ACT=="Fix")
 data3.cek2<-subset(data3, ACT=="Ignore")
-data3.cek1a<-subset(data3.cek1, ID_LC1==ID_LC2)
-data3.cek1b<-subset(data3.cek1, ID_LC1!=ID_LC2)
-data3.cek1a$TPM1<-1
-data4<-rbind(data3.cek1a,data3.cek1b,data3.cek2)
+if(nrow(data3.cek1)){
+  data3.cek1a<-subset(data3.cek1, ID_LC1==ID_LC2)
+  data3.cek1b<-subset(data3.cek1, ID_LC1!=ID_LC2)
+  data3.cek1a$TPM1<-1
+  data4<-rbind(data3.cek1a,data3.cek1b,data3.cek2)
+} else {
+  data4<-data3.cek2
+}
 
 #CALCULATE PREDICTED AREA AT ITERATION 1
 data4$COUNT.it0<-data4$COUNT
@@ -424,7 +441,6 @@ while(length(lu1.lost)!=0 || length(lu2.lost)!=0){
 colnames(d2)<-c("ID","CLASS")
 
 name.matrix<-d2
-name.matrix$LC_CODE<-toupper(abbreviate(name.matrix$CLASS, minlength=4, method="both"))
 name.matrix$order<-name.matrix$ID
 name.matrix$order<-as.numeric(levels(name.matrix$order))[name.matrix$order]
 name.matrix<- as.data.frame(name.matrix[order(name.matrix$order, decreasing=FALSE),])
@@ -458,6 +474,7 @@ name.lc<-as.data.frame(name.matrix$lc_id)
 name.lc$label<-name.matrix$CLASS
 name.lc$description<-''
 colnames(name.lc)[1]='//lc_id'
+name.lc.temp<-name.lc
 write.table(name.lc, paste(result_dir, "/",Scenario_name,".car",sep=""),append=TRUE,quote=FALSE,col.names=TRUE,row.names=FALSE,sep="\t")
 
 #Zone information
@@ -471,14 +488,24 @@ name.pu<-as.data.frame(pu$zone_id)
 name.pu$label<-pu$Z_NAME
 name.pu$description<-''
 colnames(name.pu)[1]='//zone_id'
+name.pu.temp<-name.pu
+colnames(name.pu.temp)[2]='Z_NAME'
 write.table(name.pu, paste(result_dir, "/",Scenario_name,".car",sep=""),append=TRUE,quote=FALSE,col.names=TRUE,row.names=FALSE,sep="\t")
 
 #Landcover change
 text<-"\n#LANDCOVER_CHANGE"
 write(text, paste(result_dir, "/",Scenario_name,".car",sep=""),append=TRUE, sep="\t")
 name.lcc<-data2
-name.lcc$iteration<-name.lcc$'//scenario_id'<-0
-name.lcc<-name.lcc[c('//scenario_id','iteration','ZONE','ID_LC1','ID_LC2','COUNT')]
+name.lcc$iteration_id<-name.lcc$'//scenario_id'<-0
+name.lcc<-merge(name.lcc, name.pu.temp, by="Z_NAME")
+colnames(name.lc.temp)[2]='LC_t1'
+name.lcc<-merge(name.lcc, name.lc.temp, by="LC_t1")
+name.lcc$lc1_id<-name.lcc$'//lc_id'
+name.lcc$'//lc_id'<-NULL
+colnames(name.lc.temp)[2]='LC_t2'
+name.lcc<-merge(name.lcc, name.lc.temp, by="LC_t2")
+name.lcc$lc2_id<-name.lcc$'//lc_id'
+name.lcc<-name.lcc[c('//scenario_id','iteration_id','//zone_id','lc1_id','lc2_id','COUNT')]
 colnames(name.lcc)[3]='zone_id'
 colnames(name.lcc)[4]='lc1_id'
 colnames(name.lcc)[5]='lc2_id'
@@ -489,18 +516,22 @@ write.table(name.lcc, paste(result_dir, "/",Scenario_name,".car",sep=""),append=
 #Carbon Stock
 text<-"\n#CARBONSTOCK"
 write(text, paste(result_dir, "/",Scenario_name,".car",sep=""),append=TRUE, sep="\t")
-name.carbon<-data2
-name.carbon$iteration<-name.carbon$'//scenario_id'<-0
-name.carbon<-name.carbon[c('//scenario_id','iteration','ZONE','ID_LC1','CARBON_t1')]
-colnames(name.carbon)[3]='zone_id'
-colnames(name.carbon)[4]='lc_id'
-colnames(name.carbon)[5]='area'
-name.carbon<-name.carbon[which(name.carbon$area != 0),]
+colnames(name.lc.temp)[2]<-"LC"
+name.carbon.temp<-merge(name.lc.temp, lut.c, by="LC")
+name.carbon.temp<-name.carbon.temp[c('//lc_id','CARBON')]
+name.carbon<-data.frame()
+for(i in 0:(nrow(name.pu)-1)){
+  for(j in 1:nrow(name.lc)){
+    name.carbon<-rbind(name.carbon, c(0, 0, i, name.carbon.temp$'//lc_id'[j], name.carbon.temp$CARBON[j]))
+  }
+}
+colnames(name.carbon)=c('//scenario_id','iteration_id','zone_id','lc_id','area')
 write.table(name.carbon, paste(result_dir, "/",Scenario_name,".car",sep=""),append=TRUE,quote=FALSE, col.names=TRUE,row.names=FALSE, sep="\t")
 
 Abacus_Project_File = paste(result_dir, "/",Scenario_name,".car",sep="")
 
 #====DATABASE EXPORT
-eval(parse(text=(paste("Historical_data_", T1, "_", T2, "_", SCIENDO1.index, "<-LUTMDatabase", sep=""))))
-historical<-paste("Historical_data_", T1, "_", T2, "_", SCIENDO1.index, sep="")
-eval(parse(text=(paste("resave(SCIENDO1.index, ", historical, ", file='",proj.file,"')", sep=""))))
+#eval(parse(text=(paste("Historical_data_", T1, "_", T2, "_", SCIENDO1.index, "<-LUTMDatabase", sep=""))))
+#historical<-paste("Historical_data_", T1, "_", T2, "_", SCIENDO1.index, sep="")
+#eval(parse(text=(paste("resave(SCIENDO1.index, ", historical, ", file='",proj.file,"')", sep=""))))
+resave(SCIENDO1.index, file=proj.file)
