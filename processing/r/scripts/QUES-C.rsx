@@ -459,6 +459,7 @@ tb_em_total_10<-head(tb_em_total,n=10)
 #====Zonal Emission====
 tb_em_zonal<-as.data.frame(NULL)
 for (i in 1:length(zone_lookup$ID)){
+  tryCatch({
   a<-(zone_lookup$ID)[i]
   tb_em<-as.data.frame(cbind(order_em$ZONE, order_em$LU_CHG, as.data.frame(round(order_em$em, digits=3))))
   colnames(tb_em)<-c("ZONE","LU_CHG", "em")
@@ -470,6 +471,7 @@ for (i in 1:length(zone_lookup$ID)){
   tb_em_z$Percentage<-as.numeric(format(round((tb_em_z$em / sum(tb_em_z$em) * 100),2), nsmall=2))
   tb_em_z_10<-head(tb_em_z,n=10)
   tb_em_zonal<-rbind(tb_em_zonal,tb_em_z_10)
+  },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 rm(tb_em, tb_em_total, tb_em_z, tb_em_z_10)
 

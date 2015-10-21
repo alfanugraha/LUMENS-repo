@@ -316,7 +316,7 @@ write(text0, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=TRUE, sep=
 write.table(Gnrl.info, paste(dirAnnual,"/",Scenario_name,".car",sep=""),append=TRUE,quote=FALSE,col.names=FALSE,row.names=FALSE,sep="\t")
 
 Project.info.1<-c("title","description", "baseyear0", "baseyear1", "n_iteration")
-Project.info.2<-c("SCIENDO", "Project description", t1, t1+1, iteration)
+Project.info.2<-c("SCIENDO", "Project description", t2-1, t2, iteration)
 Project.info<-paste(Project.info.1,Project.info.2,sep="=")
 text<-"\n#PROJECT"
 write(text, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=TRUE, sep="\t")
