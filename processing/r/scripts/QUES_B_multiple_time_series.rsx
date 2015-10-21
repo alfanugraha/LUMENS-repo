@@ -69,23 +69,23 @@ if (file.exists(paste(user_path,"/LUMENS/LUMENS_quesb.log", sep=""))) {
   print("LUMENS Pre-QuES log file is available")
 } else {
   log.quesb<-data.frame(IDX=NA, 
-                          MODULE=NA, 
-                          DATE=NA,
-                          TIME=NA,
-                          LU1=NA,
-                          LU2=NA,
-                          PU=NA,
-                          T1=NA,
-                          T2=NA,
-                          LOOKUP_LC=NA,
-                          LOOKUP_ZONE=NA,
-                          NODATA=NA,
-                          GRIDRES=NA,
-                          WINDOWSIZE=NA,
-                          WINDOWSHAPE=NA,
-                          CLASSDESC=NA,
-                          EDGECON=NA,
-                          OUTPUT_FOLDER=NA, row.names=NULL)
+                        MODULE=NA, 
+                        DATE=NA,
+                        TIME=NA,
+                        LU1=NA,
+                        LU2=NA,
+                        PU=NA,
+                        T1=NA,
+                        T2=NA,
+                        LOOKUP_LC=NA,
+                        LOOKUP_ZONE=NA,
+                        NODATA=NA,
+                        GRIDRES=NA,
+                        WINDOWSIZE=NA,
+                        WINDOWSHAPE=NA,
+                        CLASSDESC=NA,
+                        EDGECON=NA,
+                        OUTPUT_FOLDER=NA, row.names=NULL)
 }
 
 #====B READ LANDUSE DATA FROM LUMENS DATABASE====
@@ -227,24 +227,24 @@ for (i in 1: nrow(data3)){
 }
 #RUN NODATA SYNC FOR ALL RASTER FILES IF NOT AVAILABLE YET IN QUES-B DIRECTORY
 if (nodata.cek<nrow(data3)){
-#Create temporary boolean raster value
-for(i in 1: nrow(data3)){
-  eval(parse(text=(paste("landuse_t",i,"<- reclassify(",data3[i,1],",cbind(raster.nodata,NA))", sep=''))))
-  eval(parse(text=(paste("Landuse_t",i,"_temp<-landuse_t",i,">=0", sep=''))))
+  #Create temporary boolean raster value
+  for(i in 1: nrow(data3)){
+    eval(parse(text=(paste("landuse_t",i,"<- reclassify(",data3[i,1],",cbind(raster.nodata,NA))", sep=''))))
+    eval(parse(text=(paste("Landuse_t",i,"_temp<-landuse_t",i,">=0", sep=''))))
+    
+  }
+  #No data check raster
+  lu.nodata.check<-Landuse_t1_temp
+  for(i in 2:nrow(data3)){
+    eval(parse(text=(paste("lu.nodata.check<-lu.nodata.check*Landuse_t",i,"_temp", sep=''))))
+  }
   
-}
-#No data check raster
-lu.nodata.check<-Landuse_t1_temp
-for(i in 2:nrow(data3)){
-  eval(parse(text=(paste("lu.nodata.check<-lu.nodata.check*Landuse_t",i,"_temp", sep=''))))
-}
-
-#syncronized nodata raster map
-for(i in 1:nrow(data3)){
-  eval(parse(text=(paste("landuse_t",i,"<-lu.nodata.check*landuse_t",i, sep=''))))
-  lu_path<-paste(getwd(),"/landuse_tNA_", data3[i,2],".tif", sep="")
-  eval(parse(text=(paste("writeRaster(landuse_t",i,",  filename=",'basename(lu_path)',", format='GTiff', overwrite=TRUE, NAflag=255)", sep=''))))
-}
+  #syncronized nodata raster map
+  for(i in 1:nrow(data3)){
+    eval(parse(text=(paste("landuse_t",i,"<-lu.nodata.check*landuse_t",i, sep=''))))
+    lu_path<-paste(getwd(),"/landuse_tNA_", data3[i,2],".tif", sep="")
+    eval(parse(text=(paste("writeRaster(landuse_t",i,",  filename=",'basename(lu_path)',", format='GTiff', overwrite=TRUE, NAflag=255)", sep=''))))
+  }
 } else {print ("landuse_tNA files are ready")
   for(i in 1: nrow(data3)){
     eval(parse(text=(paste("landuse_t",i,"<- reclassify(",data3[i,1],",cbind(raster.nodata,NA))", sep=''))))
@@ -256,7 +256,7 @@ for(i in 1:nrow(data3)){
   for(i in 2:nrow(data3)){
     eval(parse(text=(paste("lu.nodata.check<-lu.nodata.check*Landuse_t",i,"_temp", sep=''))))
   }
-        }
+}
 
 #====H Define WD, Output folder, raster lu1, lu2, pu====
 
@@ -279,23 +279,23 @@ zone<-eval(parse(text=(paste(pu[1], sep=''))))
 
 #====I Sampling grid raster preparation====
 generate_sampling_grid<-function(landuse, gridresolution){
-xl1<-xmin(landuse)
-yl1<-ymin(landuse)
-xu1<-xmax(landuse)
-yu1<-ymax(landuse)
-pjg<-xu1-xl1
-lbr<-yu1-yl1
-ncellx<-pjg/gridres
-ncelly<-lbr/gridres
-ncellx<-ceiling(ncellx)
-ncelly<-ceiling(ncelly)
-
-newproj<-proj4string(landuse)
-raster.grid<-raster(xmn=xl1, xmx=xu1, ymn=yl1, ymx=yu1, ncol=ncellx, nrow=ncelly, crs=newproj)
-res(raster.grid)<-gridres
-vals <- 1:ncell(raster.grid)
-raster.grid<-setValues(raster.grid,vals)
-return (raster.grid)
+  xl1<-xmin(landuse)
+  yl1<-ymin(landuse)
+  xu1<-xmax(landuse)
+  yu1<-ymax(landuse)
+  pjg<-xu1-xl1
+  lbr<-yu1-yl1
+  ncellx<-pjg/gridres
+  ncelly<-lbr/gridres
+  ncellx<-ceiling(ncellx)
+  ncelly<-ceiling(ncelly)
+  
+  newproj<-proj4string(landuse)
+  raster.grid<-raster(xmn=xl1, xmx=xu1, ymn=yl1, ymx=yu1, ncol=ncellx, nrow=ncelly, crs=newproj)
+  res(raster.grid)<-gridres
+  vals <- 1:ncell(raster.grid)
+  raster.grid<-setValues(raster.grid,vals)
+  return (raster.grid)
 }
 #Initial raster sampling grid
 sampling.grid.rast<-generate_sampling_grid(lu1, gridres)
@@ -338,11 +338,11 @@ foc.area.final<-focal.area(data[2,1])
 
 #Total Focal area fraction function
 foc.area.grid.sampled<-function(foc.area, sampling.grid){
-tothab<-zonal(foc.area, sampling.grid, 'sum')
-tothab<-as.data.frame(tothab)
-colnames(tothab) <- c("ID", "sum")
-tothab$sum<-((tothab$sum/totarea)*100)
-return(tothab)}
+  tothab<-zonal(foc.area, sampling.grid, 'sum')
+  tothab<-as.data.frame(tothab)
+  colnames(tothab) <- c("ID", "sum")
+  tothab$sum<-((tothab$sum/totarea)*100)
+  return(tothab)}
 
 #Initial focal area fraction inside sampling grid
 tothab.init<-foc.area.grid.sampled(foc.area.init, sampling.grid.rast.resampled)
@@ -353,113 +353,113 @@ tothab.final<-foc.area.grid.sampled(foc.area.final, sampling.grid.rast.resampled
 #====K Fragstats .fca Preparation and Execution====
 #Prepare fca file for processing tif 
 teci.analysis<-function(landuse, lu_path){
-modid=1
-internal<-paste('')
-cpf<-paste('')
-io<-paste('[BAND:1]')
-desc<-paste('')
-drlib<-paste('GDAL')
-drname<-paste('GeoTIFF grid (.tif)')
-drid<-paste('63B45E15-C8E5-44f6-A9AB-60E1852CDB5D')
-
-#extent input of file 1
-xl1<-xmin(landuse)
-yl1<-ymin(landuse)
-xu1<-xmax(landuse)
-yu1<-ymax(landuse)
-
-#cell size input of file 1
-csize1<-xres(landuse)
-#row and column size input of file 1
-rowc1<-nrow(landuse)
-colc1<-ncol(landuse)
-
-
-aczero="1"
-#no data value input
-nodata=255
-bvalue=999
-
-#common tables input
-contab<-read.table(file=edgecon, header=TRUE, sep=',', skip=1)
-contab2<-round(contab, digits=2)
-
-#raster file directory for landuse
-#dirname_raster<-dirname(paste(getwd(),"/landuse_tNA_", data[1,2],".tif", sep=''))
-#setwd(dirname_raster)
-
-#Clean previous teci process
-for (i in 1:3){
-  mwout<-paste(lu_path,'_mw',i, sep='')
-  teci.dir<-paste(mwout,"/",list.files(mwout), sep='')
-  if (file.exists(teci.dir)==TRUE){
-    mwout2<-paste(lu_path,'_mw',i, sep='')
-    unlink(mwout2, recursive=TRUE)
-    print(paste(i,"deleting previous raster file found, algorithm continue..."))
-  }else{
-    print(paste(i,"no previous raster file found, algorithm continue..."))
+  modid=1
+  internal<-paste('')
+  cpf<-paste('')
+  io<-paste('[BAND:1]')
+  desc<-paste('')
+  drlib<-paste('GDAL')
+  drname<-paste('GeoTIFF grid (.tif)')
+  drid<-paste('63B45E15-C8E5-44f6-A9AB-60E1852CDB5D')
+  
+  #extent input of file 1
+  xl1<-xmin(landuse)
+  yl1<-ymin(landuse)
+  xu1<-xmax(landuse)
+  yu1<-ymax(landuse)
+  
+  #cell size input of file 1
+  csize1<-xres(landuse)
+  #row and column size input of file 1
+  rowc1<-nrow(landuse)
+  colc1<-ncol(landuse)
+  
+  
+  aczero="1"
+  #no data value input
+  nodata=255
+  bvalue=999
+  
+  #common tables input
+  contab<-read.table(file=edgecon, header=TRUE, sep=',', skip=1)
+  contab2<-round(contab, digits=2)
+  
+  #raster file directory for landuse
+  #dirname_raster<-dirname(paste(getwd(),"/landuse_tNA_", data[1,2],".tif", sep=''))
+  #setwd(dirname_raster)
+  
+  #Clean previous teci process
+  for (i in 1:3){
+    mwout<-paste(lu_path,'_mw',i, sep='')
+    teci.dir<-paste(mwout,"/",list.files(mwout), sep='')
+    if (file.exists(teci.dir)==TRUE){
+      mwout2<-paste(lu_path,'_mw',i, sep='')
+      unlink(mwout2, recursive=TRUE)
+      print(paste(i,"deleting previous raster file found, algorithm continue..."))
+    }else{
+      print(paste(i,"no previous raster file found, algorithm continue..."))
+    }
   }
-}
-
-#Check .FCA model
-LUMENS_path_user <- paste(user_path,"/LUMENS/", sep="")
-if (file.exists(paste(LUMENS_path_user,'/teciuf.fca',sep=''))){
-  fca<-paste(LUMENS_path_user,'/teciuf.fca',sep='')
-  print("Fragstats' model found!")
-} else { stop("Fragstats model file is not found, please make sure the file is located in your LUMENS folder in Program files")
-}
-
-#=Connect to fragstats' .fca file=
-SQLite(max.con = 200, fetch.default.rec = 500, force.reload = FALSE, shared.cache=FALSE)
-drv <- dbDriver("SQLite")
-con <- dbConnect(drv, dbname=as.character(fca))
-
-#delete all record from frg_landscape layer
-del<-paste("DELETE FROM frg_landscape_layers")
-ll <- dbSendQuery(con, del)
-
-input_desc<-paste("UPDATE frg_table_strings SET value='",classdesc,"' WHERE rec_id=5;",sep="")
-input_edge<-paste("UPDATE frg_table_strings SET value='",edgecon,"' WHERE rec_id=2;",sep="")
-input_out<-paste("UPDATE frg_table_strings SET value='",result_dir,"' WHERE rec_id=6;",sep="")
-input_window_size_sqr<-paste("UPDATE frg_table_numerics SET value=",windowsize,"WHERE rec_id=18;"); #change square window radius
-input_window_size_circ<-paste("UPDATE frg_table_numerics SET value=",windowsize,"WHERE rec_id=19;"); #change circle window radius
-input_window_type<-paste("UPDATE frg_table_numerics SET value=",window.shape,"WHERE rec_id=13;")
-ll <- dbSendQuery(con, input_desc)
-ll <- dbSendQuery(con, input_edge)
-ll <- dbSendQuery(con, input_out)
-ll <- dbSendQuery(con, input_window_size_sqr)
-ll <- dbSendQuery(con, input_window_size_circ)
-ll <- dbSendQuery(con, input_window_type)
-
-landlayer1<-paste("INSERT INTO frg_landscape_layers(model_id, name_internal, name_external, io_info, driver_lib, driver_name, driver_id, xll, yll, xur, yur, cell_size, row_count, col_count, allow_class_zero, no_data_value, background_value) VALUES ('",modid,"','",internal,"','",lu_path,"','",io,"','",drlib,"','",drname,"','",drid,"','",xl1,"','",yl1,"','",xu1,"','",yu1,"','",csize1,"','",rowc1,"','",colc1,"','",aczero,"','",nodata,"','",bvalue,"');",sep="")
-
-ll <- dbSendQuery(con, landlayer1)
-
-#Fragstats directory
-if (file.exists("C:/Program Files (x86)/Fragstats 4")){
-  setwd("C:/Program Files (x86)/Fragstats 4/")
-} else{
-  setwd("C:/Program Files/Fragstats 4/")
-}
-
-#= Execute fragstats, generate TECI=
-sysout<-paste(result_dir, "/fragout", sep="")
-f <- paste('frg -m',shQuote(fca),' -o',sysout)
-system(f)
-
-#delete all record from frg_landscape layer
-del<-paste("DELETE FROM frg_landscape_layers")
-ll <- dbSendQuery(con, del)
-
-setwd(result_dir)
-mwout<-paste(lu_path,'_mw1', sep='')
-teci.dir<-paste(mwout,"/",list.files(mwout)[1], sep='')
-
-#convert -999 value to NA
-mwfile<-raster(teci.dir)
-NAvalue(mwfile)<-(999*-1)
-
-return(mwfile)
+  
+  #Check .FCA model
+  LUMENS_path_user <- paste(user_path,"/LUMENS/", sep="")
+  if (file.exists(paste(LUMENS_path_user,'/teciuf.fca',sep=''))){
+    fca<-paste(LUMENS_path_user,'/teciuf.fca',sep='')
+    print("Fragstats' model found!")
+  } else { stop("Fragstats model file is not found, please make sure the file is located in your LUMENS folder in Program files")
+  }
+  
+  #=Connect to fragstats' .fca file=
+  SQLite(max.con = 200, fetch.default.rec = 500, force.reload = FALSE, shared.cache=FALSE)
+  drv <- dbDriver("SQLite")
+  con <- dbConnect(drv, dbname=as.character(fca))
+  
+  #delete all record from frg_landscape layer
+  del<-paste("DELETE FROM frg_landscape_layers")
+  ll <- dbSendQuery(con, del)
+  
+  input_desc<-paste("UPDATE frg_table_strings SET value='",classdesc,"' WHERE rec_id=5;",sep="")
+  input_edge<-paste("UPDATE frg_table_strings SET value='",edgecon,"' WHERE rec_id=2;",sep="")
+  input_out<-paste("UPDATE frg_table_strings SET value='",result_dir,"' WHERE rec_id=6;",sep="")
+  input_window_size_sqr<-paste("UPDATE frg_table_numerics SET value=",windowsize,"WHERE rec_id=18;"); #change square window radius
+  input_window_size_circ<-paste("UPDATE frg_table_numerics SET value=",windowsize,"WHERE rec_id=19;"); #change circle window radius
+  input_window_type<-paste("UPDATE frg_table_numerics SET value=",window.shape,"WHERE rec_id=13;")
+  ll <- dbSendQuery(con, input_desc)
+  ll <- dbSendQuery(con, input_edge)
+  ll <- dbSendQuery(con, input_out)
+  ll <- dbSendQuery(con, input_window_size_sqr)
+  ll <- dbSendQuery(con, input_window_size_circ)
+  ll <- dbSendQuery(con, input_window_type)
+  
+  landlayer1<-paste("INSERT INTO frg_landscape_layers(model_id, name_internal, name_external, io_info, driver_lib, driver_name, driver_id, xll, yll, xur, yur, cell_size, row_count, col_count, allow_class_zero, no_data_value, background_value) VALUES ('",modid,"','",internal,"','",lu_path,"','",io,"','",drlib,"','",drname,"','",drid,"','",xl1,"','",yl1,"','",xu1,"','",yu1,"','",csize1,"','",rowc1,"','",colc1,"','",aczero,"','",nodata,"','",bvalue,"');",sep="")
+  
+  ll <- dbSendQuery(con, landlayer1)
+  
+  #Fragstats directory
+  if (file.exists("C:/Program Files (x86)/Fragstats 4")){
+    setwd("C:/Program Files (x86)/Fragstats 4/")
+  } else{
+    setwd("C:/Program Files/Fragstats 4/")
+  }
+  
+  #= Execute fragstats, generate TECI=
+  sysout<-paste(result_dir, "/fragout", sep="")
+  f <- paste('frg -m',shQuote(fca),' -o',sysout)
+  system(f)
+  
+  #delete all record from frg_landscape layer
+  del<-paste("DELETE FROM frg_landscape_layers")
+  ll <- dbSendQuery(con, del)
+  
+  setwd(result_dir)
+  mwout<-paste(lu_path,'_mw1', sep='')
+  teci.dir<-paste(mwout,"/",list.files(mwout)[1], sep='')
+  
+  #convert -999 value to NA
+  mwfile<-raster(teci.dir)
+  NAvalue(mwfile)<-(999*-1)
+  
+  return(mwfile)
 }
 
 #Execute TECI T1
@@ -476,9 +476,9 @@ mwfile.final<-teci.analysis(lu2, lu2_path)
 setwd(result_dir2)
 #save TECI file function
 saveTECI<-function(mwfile, location, period){
-file.teci<-paste('TECI_',location,'_',period,'_NA',sep='')
-writeRaster(mwfile, filename=file.teci, format="GTiff", overwrite=TRUE)
-return(print(paste(file.teci, "has been written")))
+  file.teci<-paste('TECI_',location,'_',period,'_NA',sep='')
+  writeRaster(mwfile, filename=file.teci, format="GTiff", overwrite=TRUE)
+  return(print(paste(file.teci, "has been written")))
 }
 
 #save TECI file
@@ -496,32 +496,32 @@ saveFocal(foc.area.final, location, T2)
 #====M Generate DIFA Table and Chart + AUC ===== 
 #DIFA Table Function
 generateDIFAtable<-function(mwfile, tothab, location, period){
-    
-    #extract value from MW TECI with points
-    tecival<-extract(mwfile, centro, method='simple', na.rm=T, df=T)
-    
-    poly.data<-as.data.frame(sampling.grid.rast,xy=TRUE) #NEW
-    colnames(poly.data)<-c("x","y","ID.grid") #ID = id grid
-    
-    #combine dataframe of teci and habitat
-    colnames(tecival)<-c("ID.grid","teci")
-    colnames(tothab)<-c("ID.grid","sum")
-    ctab<-merge(tothab,poly.data,by="ID.grid")
-    ctab<-merge(ctab,tecival,by="ID.grid")
-    sort.ctab <- ctab[order(ctab$teci, decreasing=F, na.last=TRUE), ]
-    sort.ctab <- sort.ctab[!(sort.ctab$sum==0),]
-    sumtab1<-cbind(sort.ctab, Cum.Sum=cumsum(sort.ctab$sum))
-    cumax<-max(sumtab1$Cum.Sum, na.rm=TRUE)
-    row.names(sumtab1)<-1:nrow(sumtab1)
-    sumtab1[nrow(sumtab1)+1, ] <- c(sumtab1$ID.centro[nrow(sumtab1)], sumtab1$ID.grid[nrow(sumtab1)],100,sumtab1$x[nrow(sumtab1)],sumtab1$y[nrow(sumtab1)],100,cumax)
-    
-    sumtab2.init<-round(sumtab1,digits=2)
-    colnames(sumtab2.init)<-c("ID.grid","Habitat Area (Ha)","X.cor","Y.cor","TECI(%)", "Cumulative Habitat(%)")
-    nama.tabel.teci<-paste("QUES-B_DIFA_Table_", location,"_", period, ".csv", sep='')
-    write.table(sumtab2.init, nama.tabel.teci, row.names = FALSE, sep=",")
-
-    return (sumtab1)
-    }
+  
+  #extract value from MW TECI with points
+  tecival<-extract(mwfile, centro, method='simple', na.rm=T, df=T)
+  
+  poly.data<-as.data.frame(sampling.grid.rast,xy=TRUE) #NEW
+  colnames(poly.data)<-c("x","y","ID.grid") #ID = id grid
+  
+  #combine dataframe of teci and habitat
+  colnames(tecival)<-c("ID.grid","teci")
+  colnames(tothab)<-c("ID.grid","sum")
+  ctab<-merge(tothab,poly.data,by="ID.grid")
+  ctab<-merge(ctab,tecival,by="ID.grid")
+  sort.ctab <- ctab[order(ctab$teci, decreasing=F, na.last=TRUE), ]
+  sort.ctab <- sort.ctab[!(sort.ctab$sum==0),]
+  sumtab1<-cbind(sort.ctab, Cum.Sum=cumsum(sort.ctab$sum))
+  cumax<-max(sumtab1$Cum.Sum, na.rm=TRUE)
+  row.names(sumtab1)<-1:nrow(sumtab1)
+  sumtab1[nrow(sumtab1)+1, ] <- c(sumtab1$ID.centro[nrow(sumtab1)], sumtab1$ID.grid[nrow(sumtab1)],100,sumtab1$x[nrow(sumtab1)],sumtab1$y[nrow(sumtab1)],100,cumax)
+  
+  sumtab2.init<-round(sumtab1,digits=2)
+  colnames(sumtab2.init)<-c("ID.grid","Habitat Area (Ha)","X.cor","Y.cor","TECI(%)", "Cumulative Habitat(%)")
+  nama.tabel.teci<-paste("QUES-B_DIFA_Table_", location,"_", period, ".csv", sep='')
+  write.table(sumtab2.init, nama.tabel.teci, row.names = FALSE, sep=",")
+  
+  return (sumtab1)
+}
 difa.table.init<-generateDIFAtable(mwfile.init, tothab.init, location, T1)
 difa.table.final<-generateDIFAtable(mwfile.final, tothab.final, location, T2)
 
@@ -535,7 +535,7 @@ difa.final<-ggplot(difa.table.final, aes(x =difa.table.final$teci, y =difa.table
   geom_area(position='') + ggtitle(paste(location, T2)) +
   labs(x = "Sorted TECI value (%)", y='Cumulative Proportion of Focal Areas (%)')
 
-    
+
 #Calculate area under the curve
 AUC.init = round((trapz(na.omit(difa.table.init$teci),difa.table.init$Cum.Sum))/100,digits=2)
 AUC.final = round((trapz(na.omit(difa.table.final$teci),difa.table.final$Cum.Sum))/100,digits=2)
@@ -781,7 +781,8 @@ colnames(area_lc1)[1]<-'ID'
 area_lc1<-merge(area_lc1, lookup_bh, by='ID')
 colnames(area_lc1)[3]<-'CLASS_LC1'
 area_lc1[4]<-NULL
-myColors.lu <- myColors[1:length(unique(area_lc1$ID))]
+id_length<-max(length(unique(area_lc1$ID)), length(unique(area_lc2$ID)))
+myColors.lu <- myColors[1:id_length]
 ColScale.lu<-scale_fill_manual(name="Land Use Class", breaks=area_lc1$ID, labels=area_lc1$CLASS_LC1, values=myColors.lu)
 plot.LU1<-gplot(lu1, maxpixels=100000) + geom_raster(aes(fill=as.factor(value))) +
   coord_equal() + ColScale.lu +
@@ -961,13 +962,13 @@ if (check_changemap && check_ludb){
   
   #Zonal Stat Habitat LOSS
   luchg.db.loss.zstat<-zonal_stat(habitat.loss.NA, zone, lookup_z)
-    
+  
   
   tryCatch({
-  luchg.db.gain<-subsequent.changes(habitat.gain.NA,lu_db, "Gain", location, T1,T2)
+    luchg.db.gain<-subsequent.changes(habitat.gain.NA,lu_db, "Gain", location, T1,T2)
   },error=function(e){cat("Skipping habitat gain analysis:",conditionMessage(e), "\n")})
   
-
+  
 } else {
   print (paste("Pre-QUES Land Use Change Database and Changemap for ",T1,"-",T2, " is not found", sep=""))
 }
@@ -1067,7 +1068,9 @@ tryCatch({
   background[background==-maxval]<-1
 },error=function(e){cat("skipping habitat gain plot :",conditionMessage(e), "\n")})
 
+
 #====Create RTF Report File====
+setwd(result_dir2)
 title<-"\\b\\fs32 LUMENS-QUES Project Report\\b0\\fs20"
 sub_title<-"\\b\\fs28 Sub-modules: Biodiversity Analysis\\b0\\fs20"
 test<-as.character(Sys.Date())
@@ -1273,12 +1276,12 @@ tryCatch({
 #addParagraph(rtffile, chapter6)
 addNewLine(rtffile)
 #tryCatch({
-  #text <- paste("\\b \\fs20 Habitat Quality Comparison in \\b0 \\fs20 ",area_name_rep, I_O_period_1_rep, "\\b \\fs20 - \\b0 \\fs20 ", I_O_period_2_rep,  sep="")
-  #addParagraph(rtffile, text)
-  #addPlot.RTF(rtffile, plot.fun=print, width=6.7, height=4, res=150, grid.arrange(plot.hb.chg.init, plot.hb.chg.final, ncol=2) )
-  #addNewLine(rtffile, n=1)
-  #addTable(rtffile, habitat.change)
-  #addNewLine(rtffile, n=1)
+#text <- paste("\\b \\fs20 Habitat Quality Comparison in \\b0 \\fs20 ",area_name_rep, I_O_period_1_rep, "\\b \\fs20 - \\b0 \\fs20 ", I_O_period_2_rep,  sep="")
+#addParagraph(rtffile, text)
+#addPlot.RTF(rtffile, plot.fun=print, width=6.7, height=4, res=150, grid.arrange(plot.hb.chg.init, plot.hb.chg.final, ncol=2) )
+#addNewLine(rtffile, n=1)
+#addTable(rtffile, habitat.change)
+#addNewLine(rtffile, n=1)
 #},error=function(e){cat("skipping Habitat Quality Comparison analysis:",conditionMessage(e), "\n")})
 #addNewLine(rtffile, n=1)
 
@@ -1362,4 +1365,3 @@ add.log<-data.frame(IDX=(QUESB.index),
                     OUTPUT_FOLDER=result_dir, row.names=NULL)
 log.quesb<-na.omit(rbind(log.quesb,add.log))
 write.csv(log.quesb, paste(user_path,"/LUMENS/LUMENS_quesb.log", sep=""))
-
