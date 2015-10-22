@@ -256,17 +256,21 @@ plot3<-ggplot(em,aes(yearsim,annual_sequestration,group=1))+ geom_line(colour="r
 plot4<-ggplot(em,aes(yearsim,cum_netem,group=1))+ geom_line(colour="red")+geom_point(colour="red", size=4, shape=21, fill="white")
 
 #====CREATE .CAR FILE FOR NEW ABACUS====
-pu <- melt(data = data2, id.vars=c('ZONE','Z_NAME'), measure.vars=c('COUNT'))
-pu <- dcast(data = pu, formula = Z_NAME + ZONE ~ variable, fun.aggregate = sum )
-pu_zname <- lut.pu
-colnames(pu_zname)[1] <- "ZONE"
-colnames(pu_zname)[2] <- "Z_NAME"
-pu<-pu[which(pu$Z_NAME != 0),]
-pu <- merge(pu, pu_zname, by="Z_NAME")
-pu<-na.omit(pu)
-pu$Penunjukkan<-pu$ZONE.y<-pu$COUNT<-NULL
-rownames(pu)<-NULL
-colnames(pu)[2]="ZONE"
+# pu <- melt(data = data2, id.vars=c('ZONE','Z_NAME'), measure.vars=c('COUNT'))
+# pu <- dcast(data = pu, formula = Z_NAME + ZONE ~ variable, fun.aggregate = sum )
+# pu_zname <- lut.pu
+# colnames(pu_zname)[1] <- "ZONE"
+# colnames(pu_zname)[2] <- "Z_NAME"
+# pu<-pu[which(pu$Z_NAME != 0),]
+# pu <- merge(pu, pu_zname, by="Z_NAME")
+# pu<-na.omit(pu)
+# pu$Penunjukkan<-pu$ZONE.y<-pu$COUNT<-NULL
+# rownames(pu)<-NULL
+# colnames(pu)[2]="ZONE"
+
+pu <- lut.pu
+colnames(pu)[1] <- "ZONE"
+colnames(pu)[2] <- "Z_NAME"
 
 d1<-melt(data=data2, id.vars=c('ID_LC1','LC_t1'))
 d1$variable<-d1$value<-NULL
@@ -337,7 +341,7 @@ write.table(name.lc, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=TR
 text<-"\n#ZONE"
 write(text, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=TRUE, sep="\t")
 pu$order<-pu$ZONE
-pu$order<-as.numeric(levels(pu$order))[pu$order]
+#pu$order<-as.numeric(levels(pu$order))[pu$order]
 pu<-as.data.frame(pu[order(pu$order, decreasing=FALSE),])
 pu$zone_id<-0:(nrow(pu)-1)
 name.pu<-as.data.frame(pu$zone_id)
@@ -351,7 +355,7 @@ write.table(name.pu, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=TR
 #Landcover change
 text<-"\n#LANDCOVER_CHANGE"
 write(text, paste(dirAnnual, "/",Scenario_name,".car",sep=""),append=TRUE, sep="\t")
-name.lcc<-data2
+eval(parse(text=(paste("name.lcc<-",data))))
 name.lcc$iteration_id<-name.lcc$'//scenario_id'<-0
 name.lcc<-merge(name.lcc, name.pu.temp, by="Z_NAME")
 colnames(name.lc.temp)[2]='LC_t1'

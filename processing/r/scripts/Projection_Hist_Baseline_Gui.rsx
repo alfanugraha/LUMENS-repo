@@ -495,7 +495,7 @@ write.table(name.pu, paste(result_dir, "/",Scenario_name,".car",sep=""),append=T
 #Landcover change
 text<-"\n#LANDCOVER_CHANGE"
 write(text, paste(result_dir, "/",Scenario_name,".car",sep=""),append=TRUE, sep="\t")
-name.lcc<-data2
+name.lcc<-data
 name.lcc$iteration_id<-name.lcc$'//scenario_id'<-0
 name.lcc<-merge(name.lcc, name.pu.temp, by="Z_NAME")
 colnames(name.lc.temp)[2]='LC_t1'
