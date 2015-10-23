@@ -960,8 +960,13 @@ if(analysis.option==3 | analysis.option==0){
   #1 Deforestation
   #index.deforest<-PREQUES_filter_2(c(1,2),c(1,2),'==','!=')
   tryCatch({
-    index.deforest<-filter(PreQUES_traj_database,ID_L1==c(1,2),ID_L2!=c(1,2))
-    index.deforest<-filter(index.deforest, COUNT!=0)
+    #index.deforest<-filter(PreQUES_traj_database, ID_L1==c(1,2), ID_L2!=c(1,2)) 
+    index.deforest1<-subset(PreQUES_traj_database, ID_L1==1)
+    index.deforest2<-subset(PreQUES_traj_database, ID_L1==2)
+    index.deforest<-rbind(index.deforest1, index.deforest2)
+    index.deforest<-subset(index.deforest, ID_L2!=1)
+    index.deforest<-subset(index.deforest, ID_L2!=2)
+    index.deforest<-subset(index.deforest, COUNT!=0)
     index.deforest <- aggregate(COUNT ~  Z_NAME, data=index.deforest, FUN=sum)
     colnames(index.deforest)<-c('ZONE', 'Deforestasi')
     total.deforest<-data.frame(ZONE="TOTAL",Deforestasi=sum(index.deforest[,2]))
@@ -970,18 +975,25 @@ if(analysis.option==3 | analysis.option==0){
   
   #2 Degradasi Hutan
   tryCatch({
-    index.forest.degrad<-filter(PreQUES_traj_database,ID_L1==1,ID_L2==c(2))
-    index.forest.degrad<-filter(index.forest.degrad, COUNT!=0)
+    #index.forest.degrad<-filter(PreQUES_traj_database,ID_L1==1,ID_L2==c(2))
+    index.forest.degrad<-subset(PreQUES_traj_database, ID_L1==1)
+    index.forest.degrad<-subset(index.forest.degrad, ID_L2==2)
+    index.forest.degrad<-subset(index.forest.degrad, COUNT!=0)
     index.forest.degrad <- aggregate(COUNT ~  Z_NAME, data=index.forest.degrad, FUN=sum)
     colnames(index.forest.degrad)<-c('ZONE', 'Degradasi_Hutan')
     total.forest.degrad<-data.frame(ZONE="TOTAL",Degradasi_Hutan=sum(index.forest.degrad[,2]))
     index.forest.degrad<-rbind(index.forest.degrad,total.forest.degrad)
   },error=function(e){cat("No degradation found", "\n")})
   
+  #3 Reforestasi
   tryCatch({
-    #3 Reforestasi
-    index.reforest<-filter(PreQUES_traj_database,ID_L1==c(3,4,5,6,7,8),ID_L2==c(1,2))
-    index.reforest<-filter(index.reforest, COUNT!=0)
+    #index.reforest<-filter(PreQUES_traj_database,ID_L1==c(3,4,5,6,7,8),ID_L2==c(1,2))
+    index.reforest<-subset(PreQUES_traj_database,ID_L1!=1)
+    index.reforest<-subset(index.reforest,ID_L1!=2)
+    index.reforest1<-subset(index.reforest,ID_L2==1)
+    index.reforest2<-subset(index.reforest,ID_L2==2)
+    index.reforest<-rbind(index.reforest1, index.reforest2)
+    index.reforest<-subset(index.reforest, COUNT!=0)
     index.reforest <- aggregate(COUNT ~  Z_NAME, data=index.reforest, FUN=sum)
     colnames(index.reforest)<-c('ZONE', 'Reforestasi')
     total.reforest<-data.frame(ZONE="TOTAL",Reforestasi=sum(index.reforest[,2]))
@@ -996,8 +1008,8 @@ if(analysis.option==3 | analysis.option==0){
   
   #5 Initial Forest Cover
   tryCatch({
-    index.init.forest<-filter(PreQUES_traj_database,ID_L1==1)
-    index.init.forest<-filter(index.init.forest, COUNT!=0)
+    index.init.forest<-subset(PreQUES_traj_database,ID_L1==1)
+    index.init.forest<-subset(index.init.forest, COUNT!=0)
     index.init.forest <- aggregate(COUNT ~  Z_NAME, data=index.init.forest, FUN=sum)
     colnames(index.init.forest)<-c('ZONE', 'Forest_T1')
     total.init.forest<-data.frame(ZONE="TOTAL",Forest_T1=sum(index.init.forest[,2]))
@@ -1006,8 +1018,11 @@ if(analysis.option==3 | analysis.option==0){
   
   #6 Total forest cover
   tryCatch({
-    index.init.forestandlogged<-filter(PreQUES_traj_database,ID_L1==c(1,2))
-    index.init.forestandlogged<-filter(index.init.forestandlogged, COUNT!=0)
+    #index.init.forestandlogged<-filter(PreQUES_traj_database,ID_L1==c(1,2))
+    index.init.forestandlogged1<-subset(PreQUES_traj_database,ID_L1==1)
+    index.init.forestandlogged2<-subset(PreQUES_traj_database,ID_L1==2)
+    index.init.forestandlogged<-rbind(index.init.forestandlogged1, index.init.forestandlogged2)
+    index.init.forestandlogged<-subset(index.init.forestandlogged, COUNT!=0)
     index.init.forestandlogged <- aggregate(COUNT ~  Z_NAME, data=index.init.forestandlogged, FUN=sum)
     colnames(index.init.forestandlogged)<-c('ZONE', 'Forest_T1')
     total.init.forestandlogged<-data.frame(ZONE="TOTAL",Forest_T1=sum(index.init.forestandlogged[,2]))
@@ -1016,8 +1031,10 @@ if(analysis.option==3 | analysis.option==0){
   
   #7 Initial non forest
   tryCatch({
-    index.init.nonforest<-filter(PreQUES_traj_database,ID_L1!=c(1,2))
-    index.init.nonforest<-filter(index.init.nonforest, COUNT!=0)
+    #index.init.nonforest<-filter(PreQUES_traj_database,ID_L1!=c(1,2))
+    index.init.nonforest<-subset(PreQUES_traj_database,ID_L1!=1)
+    index.init.nonforest<-subset(index.init.nonforest,ID_L1!=2)
+    index.init.nonforest<-subset(index.init.nonforest, COUNT!=0)
     index.init.nonforest <- aggregate(COUNT ~  Z_NAME, data=index.init.nonforest, FUN=sum)
     colnames(index.init.nonforest)<-c('ZONE', 'Forest_T1')
     total.init.nonforest<-data.frame(ZONE="TOTAL",Forest_T1=sum(index.init.nonforest[,2]))
@@ -1122,23 +1139,26 @@ if(analysis.option==3 | analysis.option==0){
            legend.key.width = unit(0.25, "cm"))
   
   colnames(PreQUES_traj_database.melt)<-c("Zone", "Trajectories","Abbrev", "variable", "Area"); #rename column names
+  #graph needs to be checked, sometimes plot with melt data type isn't correctly displaying   
   plot_traj<-ggplot(data=PreQUES_traj_database.melt,aes(factor(Zone),Area,fill=factor(Trajectories)))+geom_bar(stat="identity",position="dodge")+ coord_equal() +
     theme(axis.text.x= element_text(angle=90,hjust=1))+ labs(x = 'Zona', y='Luas area (Ha)')+
     theme(axis.text.x= element_text(angle=360, hjust=1))+ labs(x = 'Jenis perubahan penutupan lahan', y='Luas area (Ha)')+coord_flip()+
     theme( legend.title = element_text(size=8),legend.text = element_text(size = 6))
   
-  plot_traj_group<-ggplot(data=PreQUES_traj_database.melt,aes(factor(Trajectories),Area,fill=factor(Trajectories)))+geom_bar(stat="identity",position="dodge")+ coord_equal() +
+  plot_traj_group<-ggplot(data=PreQUES_traj_database.overal,aes(Traj,.,fill=Traj))+geom_bar(stat="identity",position="dodge")+ coord_equal() +
     theme(axis.text.x= element_text(angle=90,hjust=1))+ labs(x = 'Zona', y='Luas area (Ha)')+
     theme(axis.text.x= element_text(angle=360, hjust=1))+ labs(x = 'Jenis perubahan tutupan lahan', y='Luas area (Ha)')+coord_flip()+
     theme( legend.title = element_text(size=8),legend.text = element_text(size = 6))
   
   colnames(PreQUES_traj_forest.melt)<-c("Zone", "Forest_Change","variable", "Area"); #rename column names
+  #graph needs to be checked, sometimes plot with melt data type isn't correctly displaying   
   plot_def<-ggplot(data=PreQUES_traj_forest.melt,aes(factor(Zone),Area,fill=factor(Forest_Change)))+geom_bar(stat="identity",position="dodge")+ coord_equal() +
     theme(axis.text.x= element_text(angle=90,hjust=1))+ labs(x = 'Zona', y='Luas area (Ha)')+
     theme(axis.text.x= element_text(angle=360, hjust=1))+ labs(x = 'Jenis perubahan tutupan hutan', y='Luas area (Ha)')+coord_flip()+
     theme( legend.title = element_text(size=8),legend.text = element_text(size = 6))
   
   colnames(PreQUES_traj_drive.melt)<-c("Trajectories", "Forest_Change","variable", "Area"); #rename column names
+  #graph needs to be checked, sometimes plot with melt data type isn't correctly displaying   
   plot_drive<-ggplot(data=PreQUES_traj_drive.melt,aes(factor(Trajectories),Area,fill=factor(Forest_Change)))+geom_bar(stat="identity",position="dodge")+ coord_equal() +
     theme(axis.text.x= element_text(angle=90,hjust=1))+ labs(x = 'Zona', y='Luas area (Ha)')+
     theme(axis.text.x= element_text(angle=360, hjust=1))+ labs(x = 'Jenis perubahan tutupan hutan', y='Luas area (Ha)')+coord_flip()+
