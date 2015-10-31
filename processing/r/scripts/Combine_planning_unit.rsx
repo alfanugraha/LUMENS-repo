@@ -153,9 +153,16 @@ for (h in 1:nrow(data)) {
 eval(parse(text=(paste("Combine_db <- transform(Combine_db, unique_id=as.integer(interaction(", command3, ", drop=TRUE)))", sep="")))); 
 Combine_db <- Combine_db[ which(Combine_db$Freq > 0),] 
 Combine_db<-na.omit(Combine_db) #keep all data, na dijadiin opsi
+combine_name<-""
 for (x in 1:nrow(data)) {
   eval(parse(text=(paste("name<-data[", x, ", 1]", sep=""))))
   eval(parse(text=(paste("colnames(Combine_db)[",x,"]<-name", sep=""))))
+  eval(parse(text=(paste("alias<-names(",name,")", sep=""))))
+  if(x == 1){
+    combine_name<-paste(combine_name, alias, sep="")
+  } else {
+    combine_name<-paste(combine_name, alias, sep="_")
+  }
 }
 
 #looping untuk membuat kolom baru dengan nama attribute baru
@@ -190,15 +197,17 @@ test1<-unique(Combine_db2)[1]
 test2<-unique(Combine_db2)[2]
 test3<-cbind(test1,test2)
 row.names(test3)<-NULL
-#levels(Combine)<-merge(levels(Combine),test3,by="ID")  
+#levels(Combine)<-merge(levels(Combine),test3,by="ID")  #ini buat bikin polygon hasil combine, tapi belum berhasil
 Combine1 <- deratify(Combine,'ID')
+names(Combine1)<-combine_name
 
 writeRaster(Combine1, filename="Combine", format="GTiff", overwrite=TRUE)
-write.csv(test3, "combine_LUT.csv")
+row.names(test3)<-NULL
+write.table(test3, "combine_LUT.csv", row.names = FALSE, sep=",")
 
 eval(parse(text=(paste("pu_pu", pu_rec.index, "<-Combine1", sep=""))))
 eval(parse(text=(paste("lut.pu", pu_rec.index, "<-test3", sep=""))))
-eval(parse(text=(paste("resave(pu_pu", pu_rec.index, ", lut.pu", pu_rec.index, ", file=proj.file)", sep=""))))
+eval(parse(text=(paste("resave(pu_rec.index, pu_pu", pu_rec.index, ", lut.pu", pu_rec.index, ", file=proj.file)", sep=""))))
 
 #FUNCTION FOR PLOTTING
 #Create Map for report

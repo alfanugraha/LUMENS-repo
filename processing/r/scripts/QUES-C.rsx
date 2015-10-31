@@ -337,7 +337,7 @@ if(check_lucdb) {
   eval(parse(text=(paste("write.dbf(original_data, 'lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep="")))) 
   rm(lu.db, original_data)
 } else {
-  carbon_table <- subset(lookup_c, select=-LC)
+  carbon_table <- subset(lookup_lc, select=-LC)
   colnames(carbon_table)[1]="ID_LC1"
   colnames(carbon_table)[2]="CARBON_t1"
   data_merge <- merge(data_merge,carbon_table,by="ID_LC1") 
@@ -366,12 +366,15 @@ data_merge$null<-0
 data_merge$nullCek<-data_merge$em+data_merge$sq
 
 #===Generate area_zone Lookup and Calculate Min Area
-area_zone<-(freq(zone, useNA="no"))
+area_zone<-melt(data = data_merge, id.vars=c('ZONE'), measure.vars=c('COUNT'))
+area_zone<-dcast(data = area_zone, formula = ZONE ~ ., fun.aggregate = sum)
 colnames(area_zone)[1]<-"ID"
 colnames(area_zone)[2]<-"COUNT"
+area_zone$ID<-as.numeric(as.character(area_zone$ID))
+area_zone<-area_zone[with(area_zone, order(ID)),]
 colnames(lookup_z)[1]<-"ID"
 area_zone<-merge(area_zone, lookup_z, by="ID")
-area<-min(sum(area_zone$COUNT*Spat_res), sum(data_merge$COUNT))
+area<-min(sum(area_zone$COUNT), sum(data_merge$COUNT))
 
 #====Generate administrative unit====
 writeRaster(ref, filename="ref.tif", format="GTiff", overwrite=TRUE)
@@ -1269,4 +1272,6 @@ add.log<-data.frame(IDX=(QUESC.index),
                     OUTPUT_FOLDER=dirQUESC, row.names=NULL)
 log.quesc<-na.omit(rbind(log.quesc,add.log))
 write.csv(log.quesc, paste(user_path,"/LUMENS/LUMENS_quesc.log", sep=""))
+
+gc()
 

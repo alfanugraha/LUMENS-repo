@@ -37,9 +37,9 @@ colnames (QUESC_list) [1]<-"Data"
 QUESC_list$Usage<-0
 
 QUESC_list_n<-nrow(QUESC_list)
-if(QUESC_list_n<3){
+if(QUESC_list_n<2){
   msgBox <- tkmessageBox(title = "QUES",
-                         message = "Minimum three QUES-C Analysis Result required",
+                         message = "Minimum two QUES-C Analysis Result required",
                          icon = "info",
                          type = "ok")
   quit()

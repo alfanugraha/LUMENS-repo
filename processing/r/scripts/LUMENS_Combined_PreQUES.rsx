@@ -313,6 +313,8 @@ if(check_lucdb){
   data_merge <- as.data.frame(merge(data_merge,lookup_z,by="ZONE"))
   
   #eval(parse(text=(paste("write.dbf(data_merge,'lu.db_", pu_name ,"_", T1, "_", T2, ".dbf')", sep=""))))
+} else {
+  data_merge$COUNT <- data_merge$COUNT*Spat_res
 }
 colnames(lookup_l)<-c("ID", "CLASS")
 colnames(lookup_z)<-c("ID", "ZONE")
@@ -334,7 +336,7 @@ if(check_lucdb){
   luchg$ID<-luchg$ID_LC1+(luchg$ID_LC2*100)
   eval(parse(text=(paste("luchg_map<-overlay(", data[1,1], ",", data[2,1], ",fun=function(x,y){return(x+(y*100))})", sep=""))))
   luchg_att<-as.data.frame(freq(luchg_map))
-  luchg_att$count<-luchg_att$count*Spat_res
+  #luchg_att$count<-luchg_att$count*Spat_res
   colnames(luchg_att)<-c("ID","AREA")
   luchg_att<-merge(luchg_att,luchg,by="ID")
   eval(parse(text=(paste("writeRaster(luchg_map, filename='luchgmap_", pu_name ,"_", T1, "_", T2, ".tif', format='GTiff', overwrite=TRUE)", sep=""))))
@@ -588,8 +590,8 @@ landscape.alphabeta.plot<-alphabeta.plot(landscape.alphabeta, T1, T2,paste("Kese
 
 if(analysis.option==2 | analysis.option==0){
   #ALPHA BETA AT PLANNING UNIT LEVEL
+  alpha_beta_database<-data.frame()
   for(i in 1:nrow(lookup_z)){
-    alpha_beta_database<-data.frame()
     if (i==1){
       tryCatch({
         zone_id<-lookup_z$ID[i]
@@ -792,7 +794,7 @@ addTable(rtffile,Ov_chg.rate,font.size=8)
 addNewLine(rtffile)
 addPlot(rtffile,plot.fun=print, width=6.7,height=4,res=150,  ov.change.plot.4)
 addNewLine(rtffile)
-addParagraph(rtffile, paste("\\b \\fs20 Sepuluh Perubahan Lahan Dominan di\\b0 \\fs20 ",location, "\\b0 \\fs20", sep=" "))
+addParagraph(rtffile, paste("\\b \\fs20 Sepuluh Perubahan Lahan Dominan di",location, "\\b0 \\fs20", sep=" "))
 addNewLine(rtffile, n=1)
 colnames(chg_only_top)[3]<-"Luas(ha)"
 addTable(rtffile, chg_only_top)
@@ -851,8 +853,7 @@ if(analysis.option==2 | analysis.option==0){
         if(!checkNULL){
           zona<-paste("\\b", "\\fs20", i, "\\b0","\\fs20")
           zona_nm<-paste("\\b", "\\fs20", lookup_z$ZONE[i], "\\b0","\\fs20")
-          zona_ab<-paste("\\b", "\\fs20", lookup_z$Z_NAME[i], "\\b0","\\fs20")
-          addParagraph(rtffile, "\\b \\fs20 Grafik IO: dinamika perubahan lahan di \\b0 \\fs20", zona,"\\b \\fs20 - \\b0 \\fs20", zona_nm, "\\b \\fs20 (\\b0 \\fs20", zona_ab, "\\b \\fs20)\\b0 \\fs20" )
+          addParagraph(rtffile, "\\b \\fs20 Grafik IO: dinamika perubahan lahan di \\b0 \\fs20", zona,"\\b \\fs20 - \\b0 \\fs20", zona_nm )
           
           addNewLine(rtffile)
           eval(parse(text=( paste("addPlot(rtffile,plot.fun=print, width=6.7,height=5,res=150, alphabeta_plot_zone_",i,")", sep=''))))
@@ -866,20 +867,15 @@ if(analysis.option==2 | analysis.option==0){
 
 addNewLine(rtffile)
 done(rtffile)
-setwd(dirname(proj.file))
 
 #====Land use change database export====
-eval(parse(text=(paste("PreQUES_data_", data[1,2], "_", data[2,2], "<-data", sep=""   ))))
-newPre<-paste("PreQUES_data_", data[1,2], "_", data[2,2], sep="")
+#eval(parse(text=(paste("PreQUES_data_", data[1,2], "_", data[2,2], "<-data", sep=""   ))))
+#newPre<-paste("PreQUES_data_", data[1,2], "_", data[2,2], sep="")
 
-list.landuse<-ls(pattern="landuse_t")
-command<-paste("resave(PreQUES.index,Ov_chg,Ov_chg.ha,lut.lc,Ov_chg.rate,", newPre, ",",  sep="")
+#command<-paste("resave(PreQUES.index,Ov_chg,Ov_chg.ha,lut.lc,Ov_chg.rate,", newPre, ",",  sep="")
+command<-paste("resave(PreQUES.index,lut.lc,",  sep="")
 
-#for (q in 1:n) {
-#  command<-paste(command,list.landuse[q],",", sep="")
-#}
-#command<-paste(command,'file="lumens_banyuasin_ed.lpd")', sep="")
-command<-paste(command,"file='",basename(proj.file),"')", sep="")
+command<-paste(command,"file='",proj.file,"')", sep="")
 eval(parse(text=(command)))
 
 #====Pre-QuES Land Use Change Trajectories====
@@ -1169,7 +1165,6 @@ if(analysis.option==3 | analysis.option==0){
   colnames(PreQUES_traj_forest.overal)<-c("Forest cover changes", "Area (Ha)")
   
   #===Trajectories Data Export===
-  setwd(result_dir)
   PreQUES.index.traj=paste( "_",pu_name,"_",data[1,2], "_", data[2,2], sep="")
   eval(parse(text=(paste("PreQUES_traj_database", PreQUES.index.traj, "<-PreQUES_traj_database", sep=""   ))))
   newTraj<-paste("PreQUES_traj_database", PreQUES.index.traj, sep="")
@@ -1185,15 +1180,13 @@ if(analysis.option==3 | analysis.option==0){
   
   #command<-paste("resave(", newTraj, ",", newTrajsum, ",",newTrajz,",",newTrajmap, ",", sep="")
   command<-paste("resave(", newTraj,",", sep="")
-  command<-paste(command,"file='",basename(proj.file),"')", sep="")
+  command<-paste(command,"file='",proj.file,"')", sep="")
   
   #list.landuse<-ls(pattern="landuse_t")
   #command<-paste("resave(PreQUES.index,r.brick, Ov_chg,Ov_chg.ha,Ov_chg.rate,", newPre, ",", newludb, ",",  sep="")
   
-  setwd(dirname(proj.file))
   eval(parse(text=(command)))
   
-  setwd(result_dir)
   #====Write Report====
   rtffile <- RTF("LUMENS_Pre-QUES_Trajectory_report.lpr", font.size=9)
   title1<-"{\\colortbl;\\red0\\green0\\blue0;\\red255\\green0\\blue0;\\red146\\green208\\blue80;\\red0\\green176\\blue240;\\red140\\green175\\blue71;\\red0\\green112\\blue192;\\red79\\green98\\blue40;} \\pard\\qr\\b\\fs70\\cf2 L\\cf3U\\cf4M\\cf5E\\cf6N\\cf7S \\cf1REPORT \\par\\b0\\fs20\\ql\\cf1"
@@ -1358,3 +1351,5 @@ write.csv(log.preques, paste(user_path,"/LUMENS/LUMENS_pre_ques.log", sep=""))
 
 #CLEAN ENVIRONMENT
 #rm(list=ls(all.names=TRUE))
+
+gc()
